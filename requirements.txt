@@ -1,0 +1,9 @@
+rdkit
+selfies
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+tqdm
+pillow
