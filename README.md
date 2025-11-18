@@ -26,7 +26,9 @@ This project simulates the evolution of small molecules in a primordial-soup sce
 ## Authors
 
 Anastasia Bertova
+
 Matilde Pereira
+
 Guillermo Torrealba
 
 Bio-Inspired Artificial Intelligence 2025, UniTN
