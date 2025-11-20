@@ -44,4 +44,13 @@ elif args.algo == "novelty":
 
 # Run evolution
 history = algo.evolve(pop, args.gens)
+
+# print history
+count = 1
+for h in history:
+    print("Generation: ", count)
+    for mol in h.molecules:
+        print("Smiles: ", mol.smiles, "Selfies: ", mol.selfies)
+    count += 1
+
 print("Finished evolution.")

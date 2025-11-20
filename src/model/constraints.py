@@ -1,5 +1,7 @@
 
 # TODO Trial version that can be updated
+
+# TODO FIX THIS
 from rdkit.Chem import Descriptors
 
 def check_constraints(mol):

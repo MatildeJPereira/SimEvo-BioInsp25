@@ -1,9 +1,11 @@
-rdkit
-selfies
+rdkit~=2025.9.1
+selfies~=2.2.0
 numpy
 pandas
 scikit-learn
-matplotlib
+matplotlib~=3.10.7
 seaborn
 tqdm
 pillow
+imageio~=2.37.2
+ipython~=9.7.0
