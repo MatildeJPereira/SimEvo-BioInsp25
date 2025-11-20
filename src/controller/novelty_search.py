@@ -3,7 +3,6 @@
 # - archive updating strategy
 # - selection based on novelty ranking or multi-objective (fitness + novelty)
 
-
 # TODO trial version that can be changed
 from ..model.novelty import NoveltyArchive
 from ..model.operators import mutate_selfies
