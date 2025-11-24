@@ -3,7 +3,7 @@
 import argparse
 from ..model.molecule import Molecule
 from ..model.population import Population
-from ..model.fitness import stability_fitness
+from ..model.fitness import compute_fitness
 from .ga import GeneticAlgorithm, GAConfig
 from .novelty_search import NoveltySearch
 

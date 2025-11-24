@@ -1,12 +1,12 @@
 # Convert SELFIES to SMILES to RDKit molecules
 # Validity Checks
 # Caching fingerprints (for novelty calc)
-# MMFF otpimization wrapper (energy computation)
+# MMFF optimization wrapper (energy computation)
 
 # This is a trial version and can be changed later
 import selfies as sf
 from rdkit import Chem
-from rdkit.Chem import rdMolDescriptors, rdDistGeom, rdForceFieldHelpers
+from rdkit.Chem import rdMolDescriptors, rdDistGeom, rdForceFieldHelpers, Crippen
 
 class Molecule:
     def __init__(self, selfies_str: str):
@@ -16,8 +16,8 @@ class Molecule:
         self.heavy_atom_count = self.rdkit_mol.GetNumHeavyAtoms()
         self.fingerprint = None
         self.energy = None
-        self.tpsa = None
-        self.logP = None
+        self.tpsa = rdMolDescriptors.CalcTPSA(self.rdkit_mol)
+        self.log_p = Crippen.MolLogP(self.rdkit_mol)
 
     def compute_fingerprint(self):
         if self.fingerprint is None:

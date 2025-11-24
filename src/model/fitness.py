@@ -6,14 +6,14 @@
 from .constraints import check_constraints
 
 # Deprecated
-def stability_fitness(mol):
-    energy = mol.compute_mmff_energy()
-    penalty = check_constraints(mol)
-    return energy + penalty
+# def stability_fitness(mol):
+#     energy = mol.compute_mmff_energy()
+#     penalty = check_constraints(mol)
+#     return energy + penalty
 
 # Working Fitness function
 def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.15):
-    E = molecule.compute_mmff_energy()
+    E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
     TPSA = molecule.tpsa
     logP = molecule.log_p
 
