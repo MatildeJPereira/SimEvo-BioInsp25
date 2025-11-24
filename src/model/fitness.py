@@ -2,6 +2,7 @@
 # Penalties for chemical cnstraints (charge, valence, size)
 # Combined fitness function
 
+
 from .constraints import check_constraints
 
 # Deprecated
