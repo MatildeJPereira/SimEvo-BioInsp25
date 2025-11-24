@@ -62,7 +62,7 @@ def compute_population_fitness(population):
         mol.tpsa = tpsa
         mol.log_p = logp
 
-        energies.append(e)
+        energies.append(e/mol.heavy_atom_count if e is not None else None)
         tpsas.append(tpsa)
         logps.append(logp)
 
@@ -76,9 +76,9 @@ def compute_population_fitness(population):
         # Your proposed formula:
         # Fitness = stability + 0.35*TPSA_norm - 0.15*LogP_norm
         # Here, energy should be *inverted* (lower energy = better):
-        stability_score = 1.0 - e_n
+        #stability_score = 1.0 - e_n
 
-        mol.fitness = stability_score + 0.35*t_n - 0.15*l_n
+        mol.fitness = e_n - 0.35*t_n + 0.15*l_n
 
     return population
 

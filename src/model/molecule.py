@@ -14,5 +14,8 @@ class Molecule:
         self.smiles = sf.decoder(selfies_str)
         self.rdkit_mol = Chem.MolFromSmiles(self.smiles)
         self.heavy_atom_count = self.rdkit_mol.GetNumHeavyAtoms()
+        self.mmff_energy = None
+        self.logp = None
+        self.tpsa = None
         self.fingerprint = None
-        self.energy = None
+        self.fitness = None
