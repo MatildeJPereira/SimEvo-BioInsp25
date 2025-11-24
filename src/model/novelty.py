@@ -15,25 +15,25 @@ def tanimoto_distance_to_archive(fp, archive_fps):
     max_sim = max(sims)
     return 1.0 - max_sim 
 
-def compute_novelty(smiles_list):
+def compute_population_novelty(population):
     """
-    Returns: dict {smiles: novelty_score}
-    Novelty = Tanimoto distance to most similar molecule in the rest of the list.
+    Input: population = list of molecule objects (must have molecule.smiles)
+    Output: sets molecule.novelty for each molecule
     """
-    # 1) Build fingerprint dictionary
+
+    # 1) Generate fingerprints
     fp_dict = {}
-    for s in smiles_list:
-        mol = Chem.MolFromSmiles(s)
-        if mol is None:
-            continue
-        fp_dict[s] = morgan_fp(mol)
+    for mol in population:
+        rd_mol = Chem.MolFromSmiles(mol.smiles)
+        if rd_mol is None:
+            fp_dict[mol] = None
+        else:
+            fp_dict[mol] = morgan_fp(rd_mol)
 
     # 2) Compute novelty for each molecule
-    novelty_dict = {}
-    for smi, fp in fp_dict.items():
-        # archive = all fingerprints except this one
-        archive = [fp2 for s2, fp2 in fp_dict.items() if s2 != smi]
-        novelty = tanimoto_distance_to_archive(fp, archive)
-        novelty_dict[smi] = novelty
-
-    return novelty_dict
+    for mol, fp in fp_dict.items():
+        if fp is None:
+            mol.novelty = 1.0
+            continue
+        archive = [fp2 for m2, fp2 in fp_dict.items() if m2 != mol and fp2 is not None]
+        mol.novelty = tanimoto_distance_to_archive(fp, archive)

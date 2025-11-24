@@ -43,17 +43,19 @@ def normalize(values):
 
 def compute_population_fitness(population):
     """
-    population: list of molecule objects
-    Each molecule must have .smiles attribute.
-    Computes energy, TPSA, LogP, normalizes, 
-    then computes and assigns molecule.fitness
+    Computes all descriptors, normalizes them, computes fitness,
+    and stores fitness in molecule.fitness.
     """
 
+    # --- 1) FIRST compute novelty ---
+    compute_population_novelty(population)
+
+    # --- 2) Compute raw descriptors ---
     energies = []
     tpsas = []
     logps = []
+    novelties = []
 
-    # --- compute raw properties for each molecule ---
     for mol in population:
         e = compute_mmff94_energy(mol)
         tpsa, logp = compute_descriptors(mol)
@@ -61,24 +63,30 @@ def compute_population_fitness(population):
         mol.mmff_energy = e
         mol.tpsa = tpsa
         mol.log_p = logp
-
-        energies.append(e/mol.heavy_atom_count if e is not None else None)
+        
+        energies.append(e)
         tpsas.append(tpsa)
         logps.append(logp)
+        novelties.append(mol.novelty)
 
-    # --- normalize ---
-    E_norm = normalize(energies)
-    TPSA_norm = normalize(tpsas)
-    LogP_norm = normalize(logps)
+    # --- 3) Normalize all properties ---
+    E_norm     = normalize(energies)
+    TPSA_norm  = normalize(tpsas)
+    LogP_norm  = normalize(logps)
+    Novelty_norm = normalize(novelties)
 
-    # --- compute fitness for all ---
-    for mol, e_n, t_n, l_n in zip(population, E_norm, TPSA_norm, LogP_norm):
-        # Your proposed formula:
-        # Fitness = stability + 0.35*TPSA_norm - 0.15*LogP_norm
-        # Here, energy should be *inverted* (lower energy = better):
+    # --- 4) Compute final fitness for each molecule ---
+    for mol, e_n, t_n, l_n, n_n in zip(population, E_norm, TPSA_norm, LogP_norm, Novelty_norm):
+        
+        # Lower energy = better → stability = (1 - normalized energy)
         #stability_score = 1.0 - e_n
-
-        mol.fitness = e_n - 0.35*t_n + 0.15*l_n
+        
+        mol.fitness = (
+            e_n
+            - 0.35 * t_n
+            + 0.15 * l_n
+            - 0.05 * n_n
+        )
 
     return population
 
