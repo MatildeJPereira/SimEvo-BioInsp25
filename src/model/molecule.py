@@ -15,6 +15,8 @@ class Molecule:
         self.rdkit_mol = Chem.MolFromSmiles(self.smiles)
         self.fingerprint = None
         self.energy = None
+        self.tpsa = None
+        self.logP = None
 
     def compute_fingerprint(self):
         if self.fingerprint is None:
@@ -36,3 +38,5 @@ class Molecule:
         except Exception:
             self.energy = float("inf")
         return self.energy
+
+    
