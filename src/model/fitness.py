@@ -71,7 +71,7 @@ def compute_population_fitness(population):
         tpsas.append(tpsa)
         logps.append(logp)
         novelties.append(mol.novelty)
-        carbon_counts.append(mol.num_carbons)
+        carbon_counts.append(mol.num_carbons/mol.heavy_atom_count)
 
     # --- 3) Normalize all properties ---
     E_norm     = normalize(energies)
