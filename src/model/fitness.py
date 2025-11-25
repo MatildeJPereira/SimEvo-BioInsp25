@@ -64,7 +64,7 @@ def compute_population_fitness(population):
         mol.tpsa = tpsa
         mol.log_p = logp
         
-        energies.append(e)
+        energies.append(e/max(1,mol.heavy_atom_count))  # normalize by size
         tpsas.append(tpsa)
         logps.append(logp)
         novelties.append(mol.novelty)
