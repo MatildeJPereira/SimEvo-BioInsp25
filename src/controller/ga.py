@@ -79,6 +79,5 @@ class GeneticAlgorithm:
             print("Generation ", gen)
             population = self.evolve_one_generation(population)
             history.append(population)
-            print("gen: ", gen ,"history:", history)
 
         return history
