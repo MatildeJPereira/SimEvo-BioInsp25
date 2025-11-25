@@ -17,10 +17,21 @@ def sanitization_constraint(molecule) -> bool:
     except:
         return True  # sanitizer crashed → definitely invalid
 
+def carbon_pct_constraint(molecule, min_pct: float) -> bool:
+    """Returns True if percentage of carbon atoms exceeds max_carbons (violation)."""
+    if molecule.heavy_atom_count == 0:
+        return True  # avoid division by zero; treat as violation
+
+    if molecule.num_carbons is None:
+        molecule.count_carbons()
+    carbon_pct = molecule.carbon_count / molecule.heavy_atom_count
+    return carbon_pct > min_pct
+
 def check_constraints(molecule, constraints: dict={"sanitize":True}) -> bool:
     CONSTRAINT_FUNCTIONS = {
     "size": size_constraint,
     "sanitize": sanitization_constraint,
+    "min_carbon_pct": carbon_pct_constraint
     # add new constraints here later without touching main code
 }
     """
