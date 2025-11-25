@@ -14,10 +14,14 @@ class Molecule:
         self.smiles = sf.decoder(selfies_str)
         self.rdkit_mol = Chem.MolFromSmiles(self.smiles)
         self.heavy_atom_count = self.rdkit_mol.GetNumHeavyAtoms()
+        self.novelty = None
+        self.mmff_energy = None
         self.fingerprint = None
         self.energy = None
         self.tpsa = rdMolDescriptors.CalcTPSA(self.rdkit_mol)
         self.log_p = Crippen.MolLogP(self.rdkit_mol)
+        self.fitness = None
+        self.num_carbons = None
 
     def compute_fingerprint(self):
         if self.fingerprint is None:
@@ -39,3 +43,10 @@ class Molecule:
         except Exception:
             self.energy = float("inf")
         return self.energy
+
+    def count_carbons(self):
+        """Return the number of carbon atoms in an RDKit mol."""
+        if self.rdkit_mol is None:
+            return 0
+        self.num_carbons = sum(1 for atom in self.rdkit_mol.GetAtoms() if atom.GetAtomicNum() == 6)
+        return self.num_carbons # TODO Verify
