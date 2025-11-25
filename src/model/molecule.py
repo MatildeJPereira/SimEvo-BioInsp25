@@ -20,3 +20,10 @@ class Molecule:
         self.tpsa = None
         self.fingerprint = None
         self.fitness = None
+        self.num_carbons = None
+
+    def count_carbons(self):
+        """Return the number of carbon atoms in an RDKit mol."""
+        if self.rdkit_mol is None:
+            return 0
+        self.num_carbons = sum(1 for atom in self.rdkit_mol.GetAtoms() if atom.GetAtomicNum() == 6)

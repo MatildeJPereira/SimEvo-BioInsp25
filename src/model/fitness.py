@@ -4,6 +4,7 @@
 
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors
+from .novelty import compute_population_novelty
 
 def compute_mmff94_energy(molecule):
     mol = Chem.MolFromSmiles(molecule.smiles)
@@ -55,8 +56,10 @@ def compute_population_fitness(population):
     tpsas = []
     logps = []
     novelties = []
+    carbon_counts = []
 
     for mol in population:
+        mol.count_carbons()
         e = compute_mmff94_energy(mol)
         tpsa, logp = compute_descriptors(mol)
 
@@ -68,15 +71,17 @@ def compute_population_fitness(population):
         tpsas.append(tpsa)
         logps.append(logp)
         novelties.append(mol.novelty)
+        carbon_counts.append(mol.num_carbons)
 
     # --- 3) Normalize all properties ---
     E_norm     = normalize(energies)
     TPSA_norm  = normalize(tpsas)
     LogP_norm  = normalize(logps)
     Novelty_norm = normalize(novelties)
+    Carbon_norm = normalize(carbon_counts)
 
     # --- 4) Compute final fitness for each molecule ---
-    for mol, e_n, t_n, l_n, n_n in zip(population, E_norm, TPSA_norm, LogP_norm, Novelty_norm):
+    for mol, e_n, t_n, l_n, n_n, c_n in zip(population, E_norm, TPSA_norm, LogP_norm, Novelty_norm, Carbon_norm):
         
         # Lower energy = better → stability = (1 - normalized energy)
         #stability_score = 1.0 - e_n
@@ -86,6 +91,7 @@ def compute_population_fitness(population):
             - 0.35 * t_n
             + 0.15 * l_n
             - 0.05 * n_n
+            - 0.10 * c_n
         )
 
     return population
