@@ -3,6 +3,8 @@
 
 import random
 from dataclasses import dataclass
+
+from ..model.population import Population
 from ..model.operators import mutate_selfies, crossover_selfies
 from ..model.molecule import Molecule
 
@@ -55,6 +57,7 @@ class GeneticAlgorithm:
 
     def evolve_one_generation(self, population):
         parents = population.molecules
+
         offspring = []
 
         for _ in range(self.cfg.lam):
@@ -64,10 +67,9 @@ class GeneticAlgorithm:
 
         new_pop = mu_plus_lambda(parents, offspring, self.fitness_fn, self.cfg.mu)
 
-        population.molecules = new_pop
-        population.evaluate(self.fitness_fn)
-
-        return population
+        new_population = Population(new_pop)
+        new_population.evaluate(self.fitness_fn)
+        return new_population
 
     def evolve(self, population, generations):
         self.initialize(population)
@@ -77,5 +79,6 @@ class GeneticAlgorithm:
             print("Generation ", gen)
             population = self.evolve_one_generation(population)
             history.append(population)
+            print("gen: ", gen ,"history:", history)
 
         return history
