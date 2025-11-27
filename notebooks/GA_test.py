@@ -17,10 +17,10 @@ for s in soup:
 pop = Population(initial)
 
 cfg = GAConfig(
-    mu=20,
-    lam=40,
+    mu=50,
+    lam=100,
     mutation_rate=0.8,
-    crossover_rate=0.2,
+    crossover_rate=0.8,
     tournament_k=2,
     random_seed=0
 )
@@ -37,11 +37,30 @@ for gen, p in enumerate(history):
 
 from src.view.viewer import population_grid
 
+from PIL import Image, ImageDraw, ImageFont
+
+def label_frame(img, gen):
+    """Adds a generation label on top of the RDKit image."""
+    img = img.copy()
+    draw = ImageDraw.Draw(img)
+
+    try:
+        font = ImageFont.truetype("arial.ttf", 100)
+    except:
+        font = ImageFont.load_default()
+
+    label = f"Generation {gen}"
+    draw.text((20, 20), label, fill=(0, 0, 0), font=font)
+
+    return img
+
+
 frames = []
 
 for gen, p in enumerate(history):
     print(f"Generation {gen}")
-    img = population_grid(p, n=10)
+    img = population_grid(p, n=10)  # RDKit-generated image
+    img = label_frame(img, gen)     # Add label
     frames.append(img)
 
 # Save as GIF
