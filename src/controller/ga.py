@@ -5,12 +5,13 @@ import random
 from dataclasses import dataclass
 
 from ..model.constraints import check_constraints
-from ..model.novelty import NoveltyArchive
 from ..model.population import Population
 from ..model.operators import mutate_selfies, crossover_selfies
 from ..model.molecule import Molecule
 
-
+# ----------------------------
+# GA Configuration
+# ----------------------------
 @dataclass
 class GAConfig:
     mu: int = 50
@@ -21,15 +22,24 @@ class GAConfig:
     elitism: bool = True
     random_seed: int = 42
 
+# ----------------------------
+# Selection
+# ----------------------------
 def tournament_selection(pop, fitness,k):
     candidates = random.sample(pop,k)
     return min(candidates, key=lambda m: fitness[m])
 
+# ----------------------------
+# Replacement (μ + λ)
+# ----------------------------
 def mu_plus_lambda(parents, offspring, fitness_fn, mu):
     combined = parents + offspring
     combined.sort(key=lambda m: fitness_fn(m))
     return combined[:mu]
 
+# ----------------------------
+# Modular Genetic Algorithm
+# ----------------------------
 class GeneticAlgorithm:
     def __init__(self, config: GAConfig, fitness_fn):
         self.cfg = config
@@ -62,8 +72,8 @@ class GeneticAlgorithm:
         return None
 
     def evolve_one_generation(self, population):
+        from ..model.fitness import archive
         parents = population.molecules
-
         offspring = []
 
         for _ in range(self.cfg.lam):
@@ -75,9 +85,13 @@ class GeneticAlgorithm:
                 offspring.append(new_offspring)
 
         new_pop = mu_plus_lambda(parents, offspring, self.fitness_fn, self.cfg.mu)
-
         new_population = Population(new_pop)
         new_population.evaluate(self.fitness_fn)
+
+        # Update novelty archive with best molecule
+        best = min(new_population.molecules, key=lambda m: new_population.fitness[m])
+        archive.add(best)
+
         return new_population
 
     def evolve(self, population, generations):

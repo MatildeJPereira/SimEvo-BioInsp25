@@ -1,7 +1,6 @@
 # Population class storing molecules, their fitness, and metadata
 # Utility methods for selection (tournament, roulette, novelty-based…)
 
-# TODO Trial version that can be updated
 import random
 
 class Population:

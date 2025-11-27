@@ -3,18 +3,25 @@
 # Combined fitness function
 
 
-from .constraints import check_constraints
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors
-
 from .novelty import NoveltyArchive
+from .constraints import check_constraints
 
+# Global novelty archive
+archive = NoveltyArchive(k=5)
 
-# Deprecated
+# Deprecated Fitness Functions
 # def stability_fitness(mol):
 #     energy = mol.compute_mmff_energy()
 #     penalty = check_constraints(mol)
 #     return energy + penalty
+
+# TODO verify
+def novelty_augmented_fitness(mol, novelty_weight=1.0):
+    penalized_fitness = compute_fitness_penalized(mol)
+    novelty = archive.novelty_score(mol)
+    return penalized_fitness + novelty_weight * (1 - novelty)
 
 # Working Fitness function
 def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.15):
@@ -30,26 +37,12 @@ def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.15):
     )
     return fitness
 
-######################################################################
-# Fitness penalized for abs(MMFF, TPSA, logP)
-# Two-sided penalty helper
-def range_penalty(x, low, high, weight):
-    """
-    penalizes x when it falls outside [low, high].
-    Returns 0 when inside the range.
-    """
-    if x < low:
-        return weight * (low - x)**2
-    elif x > high:
-        return weight * (x - high)**2
-    return 0.0
-
 # Updated fitness function with symmetric penalties
 def compute_fitness_penalized(
         molecule,
-        w_energy=1.0,
-        w_tpsa=1.0,
-        w_logp=1.0):
+        w_energy=0.01, #1
+        w_tpsa=0.1,    #1
+        w_logp=0.2):    #1
 
     # Normalize MMFF energy per heavy atom
     E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
@@ -70,31 +63,6 @@ def compute_fitness_penalized(
     fitness = p_energy + p_tpsa + p_logp
     molecule.fitness = fitness
     return fitness
-############################################################################
-
-
-def compute_descriptors(molecule):
-    mol = Chem.MolFromSmiles(molecule.smiles)
-    if mol is None:
-        return None, None
-    tpsa = Descriptors.TPSA(mol)
-    logp = Descriptors.MolLogP(mol)
-    return tpsa, logp
-
-def normalize(values):
-    vals = [v for v in values if v is not None]
-    if len(vals) == 0:
-        return [0 for _ in values]
-
-    min_v = min(vals)
-    max_v = max(vals)
-
-    if max_v == min_v:  # avoid division by zero
-        return [0.5 for _ in values]  # all identical → neutral
-
-    return [( (v - min_v) / (max_v - min_v) ) if v is not None else 0 
-            for v in values]
-
 
 
 # TODO this needs to be changed to receive a molecule and not a population
@@ -156,3 +124,41 @@ def compute_population_fitness(molecule, population):
     return population # TODO return fitness
 
 # Normalization and scaling functions can be added as needed, or change the weights so it works better in practice.
+
+## Utility Functions
+def compute_descriptors(molecule):
+    mol = Chem.MolFromSmiles(molecule.smiles)
+    if mol is None:
+        return None, None
+    tpsa = Descriptors.TPSA(mol)
+    logp = Descriptors.MolLogP(mol)
+    return tpsa, logp
+
+
+def normalize(values):
+    vals = [v for v in values if v is not None]
+    if len(vals) == 0:
+        return [0 for _ in values]
+
+    min_v = min(vals)
+    max_v = max(vals)
+
+    if max_v == min_v:  # avoid division by zero
+        return [0.5 for _ in values]  # all identical → neutral
+
+    return [( (v - min_v) / (max_v - min_v) ) if v is not None else 0
+            for v in values]
+
+
+# Fitness penalized for abs(MMFF, TPSA, logP)
+# Two-sided penalty helper
+def range_penalty(x, low, high, weight):
+    """
+    penalizes x when it falls outside [low, high].
+    Returns 0 when inside the range.
+    """
+    if x < low:
+        return weight * (low - x)**2
+    elif x > high:
+        return weight * (x - high)**2
+    return 0.0
