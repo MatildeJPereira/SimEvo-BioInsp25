@@ -9,7 +9,8 @@ from .ga import GeneticAlgorithm, GAConfig
 from .novelty_search import NoveltySearch
 
 # Default initial molecules
-initial_selfies = ["[C][C][O]", "[C][O][O]", "[C][C][C]"]
+initial_selfies = ['[C][#N]', '[C][=O]', '[C][O]', '[C][C][O]', '[C][C][=O]', '[O][=C][C][O]', '[O][=C][O]', '[N][C][=Branch1][C][=O][N]', '[N]', '[O]', '[N][C][C][=Branch1][C][=O][O]', '[C][C][Branch1][=Branch1][C][=Branch1][C][=O][O][N]', '[C][C][=Branch1][C][=O][O]', '[C][C][N]', '[C][S]', '[C][C][=Branch1][C][=O][C][=Branch1][C][=O][O]', '[C][C][=Branch1][C][=O][C]', '[O][=C][=O]', '[O][=C][=S]', '[O][P][=Branch1][C][=O][Branch1][C][O][O]']
+
 
 parser = argparse.ArgumentParser(description="Run molecular evolution experiments.")
 
