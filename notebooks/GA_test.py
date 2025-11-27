@@ -1,0 +1,43 @@
+import sys
+sys.path.append("../")
+
+from src.controller.ga import GeneticAlgorithm, GAConfig
+from src.model.molecule import Molecule
+from src.model.population import Population
+from src.model.fitness import build_population_fitness
+
+# Phosphor molecule we can add back later '[O][P][=Branch1][C][=O][Branch1][C][O][O]'
+
+soup = ['[C][#N]', '[C][=O]', '[C][O]', '[C][C][O]', '[C][C][=O]', '[O][=C][C][O]', '[O][=C][O]', '[N][C][=Branch1][C][=O][N]', '[N]', '[O]', '[N][C][C][=Branch1][C][=O][O]', '[C][C][Branch1][=Branch1][C][=Branch1][C][=O][O][N]', '[C][C][=Branch1][C][=O][O]', '[C][C][N]', '[C][S]', '[C][C][=Branch1][C][=O][C][=Branch1][C][=O][O]', '[C][C][=Branch1][C][=O][C]', '[O][=C][=O]', '[O][=C][=S]', '[O][P][=Branch1][C][=O][Branch1][C][O][O]', '[C][=C][C][=C][C][=C][Ring1][=Branch1]', '[C][=C][N][=C][NH1][Ring1][Branch1]', '[C][C][=C][NH1][C][=Ring1][Branch1]', '[C][C][C][C][C][Ring1][Branch1]', '[C][C][C][C][C][C][Ring1][=Branch1]']
+
+initial = []
+for s in soup:
+    initial.append(Molecule(s))
+
+pop = Population(initial)
+
+cfg = GAConfig(
+    mu=20,
+    lam=20,
+    mutation_rate=0.5,
+    crossover_rate=0.5,
+    tournament_k=2,
+    random_seed=0
+)
+
+ga = GeneticAlgorithm(cfg, build_population_fitness)
+
+history = ga.evolve(pop, generations=20)
+print("Evolution done!")
+
+for gen, p in enumerate(history):
+    print(f"\nGeneration {gen}")
+    for n in p.molecules:
+        print(n.smiles)
+
+from src.view.viewer import population_grid
+from IPython.display import display
+
+for gen, p in enumerate(history):
+    print(f"Generation {gen}")
+    display(population_grid(p, n=10))
