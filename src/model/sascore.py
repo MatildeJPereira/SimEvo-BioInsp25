@@ -2,6 +2,28 @@ from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
 import math
 
+import pickle
+
+from collections import defaultdict
+
+import os.path as op
+
+_fscores = None
+
+
+def readFragmentScores(name='fpscores'):
+    import gzip
+    global _fscores
+    # generate the full path filename:
+    if name == "fpscores":
+        name = op.join(op.dirname(__file__), name)
+    _fscores = pickle.load(gzip.open('%s.pkl.gz' % name))
+    outDict = {}
+    for i in _fscores:
+        for j in range(1, len(i)):
+            outDict[i[j]] = float(i[0])
+    _fscores = outDict
+
 def numBridgeheadsAndSpiro(mol, ri=None):
     nSpiro = rdMolDescriptors.CalcNumSpiroAtoms(mol)
     nBridgehead = rdMolDescriptors.CalcNumBridgeheadAtoms(mol)
