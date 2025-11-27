@@ -18,9 +18,9 @@ pop = Population(initial)
 
 cfg = GAConfig(
     mu=20,
-    lam=20,
-    mutation_rate=0.5,
-    crossover_rate=0.5,
+    lam=40,
+    mutation_rate=0.8,
+    crossover_rate=0.2,
     tournament_k=2,
     random_seed=0
 )
@@ -36,8 +36,22 @@ for gen, p in enumerate(history):
         print(n.smiles)
 
 from src.view.viewer import population_grid
-from IPython.display import display
+
+frames = []
 
 for gen, p in enumerate(history):
     print(f"Generation {gen}")
-    display(population_grid(p, n=10))
+    img = population_grid(p, n=10)
+    frames.append(img)
+
+# Save as GIF
+frames[0].save(
+    "evolution.gif",
+    save_all=True,
+    append_images=frames[1:], 
+    duration=600,
+    loop=0
+)
+
+from src.view.plots import plot_fitness_over_time
+plot_fitness_over_time(history)

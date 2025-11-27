@@ -6,6 +6,7 @@
 from .constraints import check_constraints
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors
+from .novelty import NoveltyArchive
 
 
 
@@ -48,25 +49,29 @@ def compute_fitness_penalized(
         molecule,
         w_energy=0.01,
         w_tpsa=0.02,
-        w_logp=0.1):
+        w_logp=0.1,
+        w_carbonpct=0.5):
 
     # Normalize MMFF energy per heavy atom
     E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
     TPSA = molecule.tpsa
     logP = molecule.log_p
+    carbon_pct = molecule.count_carbons() / max(1, molecule.heavy_atom_count)
 
     # Target ranges (tunable)
     TPSA_low, TPSA_high = 40, 180
     logP_low, logP_high = 0, 5
     E_low, E_high = 5, 40   # kcal/mol per heavy atom
+    carbon_pct_low, carbon_pct_high = 0.5, 0.9
 
     # Compute penalties
     p_tpsa = range_penalty(TPSA, TPSA_low, TPSA_high, w_tpsa)
     p_logp = range_penalty(logP, logP_low, logP_high, w_logp)
     p_energy = range_penalty(E, E_low, E_high, w_energy)
+    p_carbonpct = range_penalty(carbon_pct, carbon_pct_low, carbon_pct_high, w_carbonpct)
 
     # Fitness = sum of penalties (lower = better)
-    fitness = p_energy + p_tpsa + p_logp
+    fitness = p_energy + p_tpsa + p_logp + p_carbonpct
     molecule.fitness = fitness
     return fitness
 ############################################################################
