@@ -4,6 +4,7 @@
 import random
 from dataclasses import dataclass
 
+from ..model.constraints import check_constraints
 from ..model.population import Population
 from ..model.operators import mutate_selfies, crossover_selfies
 from ..model.molecule import Molecule
@@ -54,7 +55,11 @@ class GeneticAlgorithm:
         if random.random() < self.cfg.mutation_rate:
             child_selfies = mutate_selfies(child_selfies)
 
-        return Molecule(child_selfies)
+        new_mol = Molecule(child_selfies)
+        if check_constraints(new_mol):
+            return new_mol
+
+        return None
 
     def evolve_one_generation(self, population):
         parents = population.molecules

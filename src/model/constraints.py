@@ -24,7 +24,7 @@ def carbon_pct_constraint(molecule, min_pct: float) -> bool:
 
     if molecule.num_carbons is None:
         molecule.count_carbons()
-    carbon_pct = molecule.num_carbon / molecule.heavy_atom_count
+    carbon_pct = molecule.num_carbons / molecule.heavy_atom_count
     return carbon_pct < min_pct
 
 def check_constraints(molecule, constraints: dict={"sanitize":True, "min_carbon_pct":0.3, "size":25}) -> bool:
