@@ -3,12 +3,18 @@
 # crossover: cut SELFIES at random position
 # occasional sanity check by converting back to RDKit
 
-# TODO This is a trial version and can be changed later
 import random
 import selfies as sf
 
 def random_symbol():
-    return random.choice(list(sf.get_semantic_robust_alphabet()))
+    filtered_alphabet = {'[#Branch1]','[#Branch2]','[#Branch3]','[#C+1]','[#C-1]','[#C]','[#N+1]','[#N]','[#O+1]',
+                         '[#P+1]','[#P-1]','[#P]','[#S+1]','[#S-1]','[#S]','[=Branch1]','[=Branch2]','[=Branch3]',
+                         '[=C+1]','[=C-1]','[=C]','[=N+1]','[=N-1]','[=N]','[=O+1]','[=O]','[=P+1]','[=P-1]','[=P]',
+                         '[=Ring1]','[=Ring2]','[=Ring3]','[=S+1]','[=S-1]','[=S]','[Branch1]','[Branch2]','[Branch3]',
+                         '[C+1]','[C-1]','[C]','[N+1]','[N-1]','[N]','[O+1]','[O-1]','[O]','[P+1]','[P-1]','[P]',
+                         '[Ring1]','[Ring2]','[Ring3]','[S+1]','[S-1]','[S]'}
+    return random.choice(list(filtered_alphabet))
+
 
 def mutate_selfies(selfies_str):
     symbols = list(sf.split_selfies(selfies_str))
@@ -31,3 +37,13 @@ def crossover_selfies(a, b):
     cut_b = random.randrange(len(b_s))
     child = a_s[:cut_a] + b_s[cut_b:]
     return ''.join(child)
+
+
+
+
+
+
+
+
+
+
