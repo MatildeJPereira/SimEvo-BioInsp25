@@ -1,101 +1,155 @@
+# MMFF94 energy computation
+# Penalties for chemical cnstraints (charge, valence, size)
+# Combined fitness function
+
+
+from .constraints import check_constraints
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors
 
-# ---------- raw molecule metrics ----------
-def _mmff(mol):
-    rd = Chem.MolFromSmiles(mol.smiles)
-    if rd is None:
-        return None
-    rd = Chem.AddHs(rd)
-    try:
-        AllChem.EmbedMolecule(rd, randomSeed=1)
-        AllChem.MMFFOptimizeMolecule(rd)
-        props = AllChem.MMFFGetMoleculeProperties(rd)
-        ff = AllChem.MMFFGetMoleculeForceField(rd, props)
-        return ff.CalcEnergy()
-    except:
-        return None
 
 
-def _tpsa(mol):
-    rd = Chem.MolFromSmiles(mol.smiles)
-    return None if rd is None else Descriptors.TPSA(rd)
+# Deprecated
+# def stability_fitness(mol):
+#     energy = mol.compute_mmff_energy()
+#     penalty = check_constraints(mol)
+#     return energy + penalty
+
+# Working Fitness function
+def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.15):
+    E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
+    TPSA = molecule.tpsa
+    logP = molecule.log_p
+
+    # MINIMIZATION fitness function
+    fitness = (
+            w_energy * E  # lower is better
+            - w_tpsa * TPSA  # higher TPSA lowers fitness (good)
+            + w_logP * logP  # higher logP raises fitness (bad)
+    )
+    return fitness
+
+######################################################################
+# Fitness penalized for abs(MMFF, TPSA, logP)
+# Two-sided penalty helper
+def range_penalty(x, low, high, weight):
+    """
+    penalizes x when it falls outside [low, high].
+    Returns 0 when inside the range.
+    """
+    if x < low:
+        return weight * (low - x)**2
+    elif x > high:
+        return weight * (x - high)**2
+    return 0.0
+
+# Updated fitness function with symmetric penalties
+def compute_fitness_penalized(
+        molecule,
+        w_energy=0.01,
+        w_tpsa=0.02,
+        w_logp=0.1):
+
+    # Normalize MMFF energy per heavy atom
+    E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
+    TPSA = molecule.tpsa
+    logP = molecule.log_p
+
+    # Target ranges (tunable)
+    TPSA_low, TPSA_high = 40, 180
+    logP_low, logP_high = 0, 5
+    E_low, E_high = 5, 40   # kcal/mol per heavy atom
+
+    # Compute penalties
+    p_tpsa = range_penalty(TPSA, TPSA_low, TPSA_high, w_tpsa)
+    p_logp = range_penalty(logP, logP_low, logP_high, w_logp)
+    p_energy = range_penalty(E, E_low, E_high, w_energy)
+
+    # Fitness = sum of penalties (lower = better)
+    fitness = p_energy + p_tpsa + p_logp
+    molecule.fitness = fitness
+    return fitness
+############################################################################
 
 
-def _logp(mol):
-    rd = Chem.MolFromSmiles(mol.smiles)
-    return None if rd is None else Descriptors.MolLogP(rd)
+def compute_descriptors(molecule):
+    mol = Chem.MolFromSmiles(molecule.smiles)
+    if mol is None:
+        return None, None
+    tpsa = Descriptors.TPSA(mol)
+    logp = Descriptors.MolLogP(mol)
+    return tpsa, logp
 
-
-def _normalize(values):
+def normalize(values):
     vals = [v for v in values if v is not None]
     if len(vals) == 0:
-        return [0] * len(values)
-    lo, hi = min(vals), max(vals)
-    if hi == lo:
-        return [0.5] * len(values)
-    return [(v - lo) / (hi - lo) if v is not None else 0 for v in values]
+        return [0 for _ in values]
 
-def build_population_fitness(population):
+    min_v = min(vals)
+    max_v = max(vals)
+
+    if max_v == min_v:  # avoid division by zero
+        return [0.5 for _ in values]  # all identical → neutral
+
+    return [( (v - min_v) / (max_v - min_v) ) if v is not None else 0 
+            for v in values]
+
+
+
+# TODO this needs to be changed to receive a molecule and not a population
+# This is weird, but maybe we could calculate it without normalization first, and then normalize afterwards
+def compute_population_fitness(molecule, population):
     """
-    Precompute normalized descriptors for the whole population,
-    then return a function f(molecule) -> fitness_value.
+    Computes all descriptors, normalizes them, computes fitness,
+    and stores fitness in molecule.fitness.
     """
 
-    mols = list(population.molecules)
+    # --- 1) FIRST compute novelty ---
+    archive = NoveltyArchive()
+    score = archive.novelty_score(molecule)
+    # compute_population_novelty(population) # TODO this shouldn't be here, maybe put it up a level
 
-    # 1) Compute raw descriptors
-    raw_E = []
-    raw_T = []
-    raw_L = []
-    raw_C = []
+    # --- 2) Compute raw descriptors --- # TODO these don't need to be lists
+    energies = []
+    tpsas = []
+    logps = []
+    novelties = []
+    carbon_counts = []
 
-    for mol in mols:
+    for mol in population:  # TODO remove the for and make it just a single molecule
         mol.count_carbons()
+        e = mol.compute_mmff_energy()
+        tpsa, logp = compute_descriptors(mol)
 
-        e = _mmff(mol)
-        t = _tpsa(mol)
-        l = _logp(mol)
-        c = mol.num_carbons / max(1, mol.heavy_atom_count)
-
-        raw_E.append(None if e is None else e / max(1, mol.heavy_atom_count))
-        raw_T.append(t)
-        raw_L.append(l)
-        raw_C.append(c)
-
-        # store raw results inside molecule (optional but useful)
         mol.mmff_energy = e
-        mol.tpsa = t
-        mol.log_p = l
+        mol.tpsa = tpsa
+        mol.log_p = logp
+        
+        energies.append(e/max(1,mol.heavy_atom_count))  # normalize by size
+        tpsas.append(tpsa)
+        logps.append(logp)
+        novelties.append(mol.novelty)
+        carbon_counts.append(mol.num_carbons/mol.heavy_atom_count)
 
-    # 2) Normalize population-wide
-    E_norm = _normalize(raw_E)
-    T_norm = _normalize(raw_T)
-    L_norm = _normalize(raw_L)
-    C_norm = _normalize(raw_C)
+    # --- 3) Normalize all properties --- # TODO This might all be able to be done in a single line
+    E_norm     = normalize(energies)
+    TPSA_norm  = normalize(tpsas)
+    LogP_norm  = normalize(logps)
+    Novelty_norm = normalize(novelties)
+    Carbon_norm = normalize(carbon_counts)
 
-    # 3) Map molecule → its normalized descriptor set
-    descriptor_map = {
-        mol: (e, t, l, c)
-        for mol, e, t, l, c in zip(mols, E_norm, T_norm, L_norm, C_norm)
-    }
-
-    # 4) Return the per-molecule fitness function
-    def fitness_fn(mol):
-        # When GA calls fitness_fn on newly created offspring,
-        # they won't be in descriptor_map → recompute raw score only.
-        if mol not in descriptor_map:
-            # fallback: compute *unnormalized* score
-            e = raw_E[0] if raw_E else 0
-            return e  # or something safe
-
-        e, t, l, c = descriptor_map[mol]
-
-        return (
-            e
-            - 0.35 * t
-            + 0.15 * l
-            - 0.10 * c
+    # --- 4) Compute final fitness for each molecule --- # TODO remove the for, do only for the one molecule
+    for mol, e_n, t_n, l_n, n_n, c_n in zip(population, E_norm, TPSA_norm, LogP_norm, Novelty_norm, Carbon_norm):
+        
+        # Lower energy = better → stability = (1 - normalized energy)
+        #stability_score = 1.0 - e_n
+        
+        mol.fitness = (
+            e_n
+            - 0.35 * t_n
+            + 0.15 * l_n
+            - 0.05 * n_n
+            - 0.10 * c_n
         )
 
-    return fitness_fn
+    return population # TODO return fitness

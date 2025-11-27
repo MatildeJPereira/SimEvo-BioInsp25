@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from ..model.population import Population
 from ..model.operators import mutate_selfies, crossover_selfies
 from ..model.molecule import Molecule
-from ..model.fitness import build_population_fitness
+
 
 
 @dataclass
@@ -69,7 +69,6 @@ class GeneticAlgorithm:
         new_pop = mu_plus_lambda(parents, offspring, self.fitness_fn, self.cfg.mu)
 
         new_population = Population(new_pop)
-        self.fitness_fn = build_population_fitness(new_population)
         new_population.evaluate(self.fitness_fn)
         return new_population
 
