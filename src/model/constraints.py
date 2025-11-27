@@ -24,28 +24,32 @@ def carbon_pct_constraint(molecule, min_pct: float) -> bool:
 
     if molecule.num_carbons is None:
         molecule.count_carbons()
-    carbon_pct = molecule.carbon_count / molecule.heavy_atom_count
-    return carbon_pct > min_pct
+    carbon_pct = molecule.num_carbons / molecule.heavy_atom_count
+    return carbon_pct < min_pct
 
-def check_constraints(molecule, constraints: dict={"sanitize":True}) -> bool:
-    CONSTRAINT_FUNCTIONS = {
-    "size": size_constraint,
-    "sanitize": sanitization_constraint,
-    "min_carbon_pct": carbon_pct_constraint
-    # add new constraints here later without touching main code
-}
+
+def check_constraints(molecule, constraints=None) -> bool:
     """
-    Evaluates all constraints in the dictionary.
-    Returns:
-        True  -> at least one constraint violated
-        False -> all constraints satisfied
+        Evaluates all constraints in the dictionary.
+        Returns:
+            False -> at least one constraint violated;
+            True -> all constraints satisfied.
     """
+    if constraints is None:
+        constraints = {"size": 50, "sanitize": True, "min_carbon_pct": 0.3}
+    constraint_function = {
+        "size": size_constraint,
+        "sanitize": sanitization_constraint,
+        "min_carbon_pct": carbon_pct_constraint
+        # add new constraints here later without touching main code
+    }
+
     for name, target in constraints.items():
         
-        if name not in CONSTRAINT_FUNCTIONS:
+        if name not in constraint_function:
             raise ValueError(f"Unknown constraint: {name}")
 
-        func = CONSTRAINT_FUNCTIONS[name]
+        func = constraint_function[name]
 
         # If constraint has a parameter (e.g., max_size)
         if isinstance(target, bool):
@@ -54,7 +58,7 @@ def check_constraints(molecule, constraints: dict={"sanitize":True}) -> bool:
             violated = func(molecule, target)  # pass parameter (e.g., size limit)
 
         if violated:
-            return True  # stop early: violation found
+            return False  # stop early: violation found
 
-    return False 
+    return True
 

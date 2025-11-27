@@ -6,7 +6,9 @@
 from .constraints import check_constraints
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors
-from .novelty import compute_population_novelty
+
+from .novelty import NoveltyArchive
+
 
 # Deprecated
 # def stability_fitness(mol):
@@ -27,7 +29,9 @@ def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.15):
             + w_logP * logP  # higher logP raises fitness (bad)
     )
     return fitness
-    
+
+
+
 def compute_descriptors(molecule):
     mol = Chem.MolFromSmiles(molecule.smiles)
     if mol is None:
@@ -50,23 +54,29 @@ def normalize(values):
     return [( (v - min_v) / (max_v - min_v) ) if v is not None else 0 
             for v in values]
 
-def compute_population_fitness(population):
+
+
+# TODO this needs to be changed to receive a molecule and not a population
+# This is weird, but maybe we could calculate it without normalization first, and then normalize afterwards
+def compute_population_fitness(molecule, population):
     """
     Computes all descriptors, normalizes them, computes fitness,
     and stores fitness in molecule.fitness.
     """
 
     # --- 1) FIRST compute novelty ---
-    compute_population_novelty(population)
+    archive = NoveltyArchive()
+    score = archive.novelty_score(molecule)
+    # compute_population_novelty(population) # TODO this shouldn't be here, maybe put it up a level
 
-    # --- 2) Compute raw descriptors ---
+    # --- 2) Compute raw descriptors --- # TODO these don't need to be lists
     energies = []
     tpsas = []
     logps = []
     novelties = []
     carbon_counts = []
 
-    for mol in population:
+    for mol in population:  # TODO remove the for and make it just a single molecule
         mol.count_carbons()
         e = mol.compute_mmff_energy()
         tpsa, logp = compute_descriptors(mol)
@@ -81,14 +91,14 @@ def compute_population_fitness(population):
         novelties.append(mol.novelty)
         carbon_counts.append(mol.num_carbons/mol.heavy_atom_count)
 
-    # --- 3) Normalize all properties ---
+    # --- 3) Normalize all properties --- # TODO This might all be able to be done in a single line
     E_norm     = normalize(energies)
     TPSA_norm  = normalize(tpsas)
     LogP_norm  = normalize(logps)
     Novelty_norm = normalize(novelties)
     Carbon_norm = normalize(carbon_counts)
 
-    # --- 4) Compute final fitness for each molecule ---
+    # --- 4) Compute final fitness for each molecule --- # TODO remove the for, do only for the one molecule
     for mol, e_n, t_n, l_n, n_n, c_n in zip(population, E_norm, TPSA_norm, LogP_norm, Novelty_norm, Carbon_norm):
         
         # Lower energy = better → stability = (1 - normalized energy)
@@ -102,6 +112,6 @@ def compute_population_fitness(population):
             - 0.10 * c_n
         )
 
-    return population
+    return population # TODO return fitness
 
 # Normalization and scaling functions can be added as needed, or change the weights so it works better in practice.
