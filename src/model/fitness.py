@@ -45,7 +45,7 @@ def range_penalty(x, low, high, weight):
     return 0.0
 
 # Updated fitness function with symmetric penalties
-def compute_fitness(
+def compute_fitness_penalized(
         molecule,
         w_energy=1.0,
         w_tpsa=1.0,
