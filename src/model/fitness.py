@@ -30,6 +30,47 @@ def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.15):
     )
     return fitness
 
+######################################################################
+# Fitness penalized for abs(MMFF, TPSA, logP)
+# Two-sided penalty helper
+def range_penalty(x, low, high, weight):
+    """
+    penalizes x when it falls outside [low, high].
+    Returns 0 when inside the range.
+    """
+    if x < low:
+        return weight * (low - x)**2
+    elif x > high:
+        return weight * (x - high)**2
+    return 0.0
+
+# Updated fitness function with symmetric penalties
+def compute_fitness(
+        molecule,
+        w_energy=1.0,
+        w_tpsa=1.0,
+        w_logp=1.0):
+
+    # Normalize MMFF energy per heavy atom
+    E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
+    TPSA = molecule.tpsa
+    logP = molecule.log_p
+
+    # Target ranges (tunable)
+    TPSA_low, TPSA_high = 40, 180
+    logP_low, logP_high = 0, 5
+    E_low, E_high = 5, 40   # kcal/mol per heavy atom
+
+    # Compute penalties
+    p_tpsa = range_penalty(TPSA, TPSA_low, TPSA_high, w_tpsa)
+    p_logp = range_penalty(logP, logP_low, logP_high, w_logp)
+    p_energy = range_penalty(E, E_low, E_high, w_energy)
+
+    # Fitness = sum of penalties (lower = better)
+    fitness = p_energy + p_tpsa + p_logp
+    molecule.fitness = fitness
+    return fitness
+############################################################################
 
 
 def compute_descriptors(molecule):
