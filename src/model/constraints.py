@@ -27,7 +27,7 @@ def carbon_pct_constraint(molecule, min_pct: float) -> bool:
     carbon_pct = molecule.num_carbon / molecule.heavy_atom_count
     return carbon_pct < min_pct
 
-def check_constraints(molecule, constraints: dict={"sanitize":True}) -> bool:
+def check_constraints(molecule, constraints: dict={"sanitize":True, "min_carbon_pct":0.3, "size":25}) -> bool:
     CONSTRAINT_FUNCTIONS = {
     "size": size_constraint,
     "sanitize": sanitization_constraint,
