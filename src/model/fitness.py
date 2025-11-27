@@ -49,13 +49,11 @@ def compute_population_fitness(population):
     """
 
     # --- 1) FIRST compute novelty ---
-    compute_population_novelty(population)
 
     # --- 2) Compute raw descriptors ---
     energies = []
     tpsas = []
     logps = []
-    novelties = []
     carbon_counts = []
 
     for mol in population:
@@ -70,18 +68,16 @@ def compute_population_fitness(population):
         energies.append(e/max(1,mol.heavy_atom_count))  # normalize by size
         tpsas.append(tpsa)
         logps.append(logp)
-        novelties.append(mol.novelty)
         carbon_counts.append(mol.num_carbons/mol.heavy_atom_count)
 
     # --- 3) Normalize all properties ---
     E_norm     = normalize(energies)
     TPSA_norm  = normalize(tpsas)
     LogP_norm  = normalize(logps)
-    Novelty_norm = normalize(novelties)
     Carbon_norm = normalize(carbon_counts)
 
     # --- 4) Compute final fitness for each molecule ---
-    for mol, e_n, t_n, l_n, n_n, c_n in zip(population, E_norm, TPSA_norm, LogP_norm, Novelty_norm, Carbon_norm):
+    for mol, e_n, t_n, l_n, c_n in zip(population, E_norm, TPSA_norm, LogP_norm, Carbon_norm):
         
         # Lower energy = better → stability = (1 - normalized energy)
         #stability_score = 1.0 - e_n
@@ -90,7 +86,6 @@ def compute_population_fitness(population):
             e_n
             - 0.35 * t_n
             + 0.15 * l_n
-            - 0.05 * n_n
             - 0.10 * c_n
         )
 
