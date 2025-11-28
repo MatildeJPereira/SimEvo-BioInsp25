@@ -8,6 +8,7 @@ from ..model.constraints import check_constraints
 from ..model.population import Population
 from ..model.operators import mutate_selfies, crossover_selfies
 from ..model.molecule import Molecule
+from ..model.novelty import NoveltyArchive
 
 
 
@@ -47,19 +48,28 @@ class GeneticAlgorithm:
         )
 
     def produce_offspring(self, parent1, parent2):
-        if random.random() < self.cfg.crossover_rate:
-            child_selfies = crossover_selfies(parent1.selfies, parent2.selfies)
-        else:
-            child_selfies = parent1.selfies
+        violated = True
+        n = 0
 
-        if random.random() < self.cfg.mutation_rate:
-            child_selfies = mutate_selfies(child_selfies)
+        while violated and n < 20:
+            if random.random() < self.cfg.crossover_rate:
+                child_selfies = crossover_selfies(parent1.selfies, parent2.selfies)
+            else:
+                child_selfies = parent1.selfies
 
-        new_mol = Molecule(child_selfies)
-        if not check_constraints(new_mol):
-            return new_mol
+            if random.random() < self.cfg.mutation_rate:
+                child_selfies = mutate_selfies(child_selfies)
 
-        self.produce_offspring(parent1, parent2)
+            new_mol = Molecule(child_selfies)
+
+            violated = check_constraints(new_mol)
+            n += 1
+
+        # If we failed 20 times, return *something* valid-ish
+        if violated:
+            return parent1  # fallback
+
+        return new_mol
 
     def evolve_one_generation(self, population):
         parents = population.molecules
@@ -70,8 +80,7 @@ class GeneticAlgorithm:
             p1 = self.select_parent(population)
             p2 = self.select_parent(population)
             new_offspring = self.produce_offspring(p1, p2)
-            if new_offspring is not None:
-                offspring.append(new_offspring)
+            offspring.append(new_offspring)
 
         new_pop = mu_plus_lambda(parents, offspring, self.fitness_fn, self.cfg.mu)
 

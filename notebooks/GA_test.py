@@ -17,9 +17,9 @@ for s in soup:
 pop = Population(initial)
 
 cfg = GAConfig(
-    mu=100,
-    lam=200,
-    mutation_rate=0.2,
+    mu=20,
+    lam=40,
+    mutation_rate=0.5,
     crossover_rate=0.8,
     tournament_k=2,
     random_seed=0
@@ -73,4 +73,5 @@ frames[0].save(
 )
 
 from src.view.plots import plot_fitness_over_time
-#plot_fitness_over_time(history)
+
+plot_fitness_over_time(history)
