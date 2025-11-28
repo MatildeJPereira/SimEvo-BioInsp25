@@ -56,10 +56,10 @@ class GeneticAlgorithm:
             child_selfies = mutate_selfies(child_selfies)
 
         new_mol = Molecule(child_selfies)
-        if check_constraints(new_mol):
+        if not check_constraints(new_mol):
             return new_mol
 
-        return None
+        self.produce_offspring(parent1, parent2)
 
     def evolve_one_generation(self, population):
         parents = population.molecules
@@ -69,7 +69,9 @@ class GeneticAlgorithm:
         for _ in range(self.cfg.lam):
             p1 = self.select_parent(population)
             p2 = self.select_parent(population)
-            offspring.append(self.produce_offspring(p1, p2))
+            new_offspring = self.produce_offspring(p1, p2)
+            if new_offspring is not None:
+                offspring.append(new_offspring)
 
         new_pop = mu_plus_lambda(parents, offspring, self.fitness_fn, self.cfg.mu)
 
