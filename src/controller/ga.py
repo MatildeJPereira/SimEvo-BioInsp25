@@ -1,6 +1,8 @@
 # Main GA pipeline
 # selection -> crossover -> mutation -> evaluation -> replacement (μ + λ)
 
+#Try saving the top 10 of each generation (like in hall of fame) but then delete them from the pop to increase exploration
+
 import random
 from dataclasses import dataclass
 
@@ -51,7 +53,7 @@ class GeneticAlgorithm:
         violated = True
         n = 0
 
-        while violated and n < 20:
+        while violated and n < 100:
             if random.random() < self.cfg.crossover_rate:
                 child_selfies = crossover_selfies(parent1.selfies, parent2.selfies)
             else:
@@ -67,7 +69,7 @@ class GeneticAlgorithm:
 
         # If we failed 20 times, return *something* valid-ish
         if violated:
-            return parent1  # fallback
+            return None  # fallback
 
         return new_mol
 
@@ -80,7 +82,8 @@ class GeneticAlgorithm:
             p1 = self.select_parent(population)
             p2 = self.select_parent(population)
             new_offspring = self.produce_offspring(p1, p2)
-            offspring.append(new_offspring)
+            if new_offspring is not None:
+                offspring.append(new_offspring)
 
         new_pop = mu_plus_lambda(parents, offspring, self.fitness_fn, self.cfg.mu)
 
