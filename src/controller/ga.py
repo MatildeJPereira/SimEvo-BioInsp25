@@ -37,6 +37,16 @@ def mu_plus_lambda(parents, offspring, fitness_fn, mu):
     combined.sort(key=lambda m: fitness_fn(m))
     return combined[:mu]
 
+# another replacement strategy
+def mu_comma_lambda(offspring, fitness_fn, mu):
+    """
+    (μ, λ) selection:
+    - parents are used only to generate offspring
+    - next generation is the best μ offspring
+    """
+    offspring.sort(key=lambda m: fitness_fn(m))
+    return offspring[:mu]
+
 # ----------------------------
 # Modular Genetic Algorithm
 # ----------------------------
