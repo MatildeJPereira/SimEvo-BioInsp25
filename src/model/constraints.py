@@ -36,7 +36,7 @@ def check_constraints(molecule, constraints=None) -> bool:
             True -> all constraints satisfied.
     """
     if constraints is None:
-        constraints = {"size": 50, "sanitize": True, "min_carbon_pct": 0.3}
+        constraints = {"size": 50, "sanitize": True, "min_carbon_pct": 0.4}
     constraint_function = {
         "size": size_constraint,
         "sanitize": sanitization_constraint,
