@@ -10,7 +10,8 @@ def random_symbol():
     filtered_alphabet = {'[C]','[=C]','[#C]',   # neutral C
                          '[N]','[=N]',          # neutral N
                          '[O]','[=O]',          # neutral O
-                         '[S]','[=S]',          # neutral S
+                         '[S]',#'[=S]',         # neutral S
+                         '[P]',
                          # optionally, just a few ions:
                          # '[N+1]', '[O-1]',
                           '[Branch1]','[Branch2]',

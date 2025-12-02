@@ -10,12 +10,11 @@ def plot_fitness_over_time(history):
     means = []
     for pop in history:
         vals = list(pop.fitness.values())
-        means.append(sum(vals) / len(vals))   # same computation as before
+        # invert so higher = better
+        mean_val = -1 * (sum(vals) / len(vals))
+        means.append(mean_val)
 
-    sns.set_style("darkgrid") # optional: just changes background style
-
-
-    # Same line plot as plt.plot(means), but with seaborn and explicit color
+    sns.set_style("darkgrid")
     sns.lineplot(x=range(len(means)), y=means, color="#990F4B")
 
     plt.xlabel("Generation")

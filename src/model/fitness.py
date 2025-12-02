@@ -18,7 +18,7 @@ archive = NoveltyArchive(k=5)
 #     return energy + penalty
 
 # TODO verify
-def novelty_augmented_fitness(mol, novelty_weight=1.0):
+def novelty_augmented_fitness(mol, novelty_weight=1):
     penalized_fitness = compute_fitness_penalized(mol)
     novelty = archive.novelty_score(mol)
     return penalized_fitness + novelty_weight * (1 - novelty)
@@ -52,7 +52,7 @@ def compute_fitness_penalized(
     # Target ranges (tunable)
     TPSA_low, TPSA_high = 40, 180
     logP_low, logP_high = 0, 5
-    E_low, E_high = 5, 40   # kcal/mol per heavy atom
+    E_low, E_high = 3, 40   # kcal/mol per heavy atom
 
     # Compute penalties
     p_tpsa = range_penalty(TPSA, TPSA_low, TPSA_high, w_tpsa)
