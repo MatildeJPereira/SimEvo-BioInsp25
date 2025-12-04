@@ -10,9 +10,12 @@ def plot_fitness_over_time(history):
     means = []
     for pop in history:
         vals = list(pop.fitness.values())
-        # invert so higher = better
-        mean_val = -1 * (sum(vals) / len(vals))
-        means.append(mean_val)
+        if not vals:
+            continue
+        # Stored fitness values are penalties (lower is better). Plot as a score: higher is better.
+        mean_penalty = sum(vals) / len(vals)
+        mean_score = -mean_penalty
+        means.append(mean_score)
 
     sns.set_style("darkgrid")
     sns.lineplot(x=range(len(means)), y=means, color="#990F4B")
