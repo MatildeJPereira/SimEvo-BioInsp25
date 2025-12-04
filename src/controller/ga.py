@@ -53,7 +53,7 @@ class GeneticAlgorithm:
         violated = True
         n = 0
 
-        while violated and n < 100:
+        while violated and n < 20:
             if random.random() < self.cfg.crossover_rate:
                 child_selfies = crossover_selfies(parent1.selfies, parent2.selfies)
             else:
