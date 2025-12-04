@@ -6,7 +6,7 @@
 # This is a trial version and can be changed later
 import selfies as sf
 from rdkit import Chem
-from rdkit.Chem import rdMolDescriptors, rdDistGeom, rdForceFieldHelpers, Crippen
+from rdkit.Chem import rdMolDescriptors, rdDistGeom, rdForceFieldHelpers, Crippen, Descriptors
 
 class Molecule:
     def __init__(self, selfies_str: str):
@@ -14,6 +14,7 @@ class Molecule:
         self.smiles = sf.decoder(selfies_str)
         self.rdkit_mol = Chem.MolFromSmiles(self.smiles)
         self.heavy_atom_count = self.rdkit_mol.GetNumHeavyAtoms()
+        self.complexity=Descriptors.BertzCT(self.rdkit_mol)
         self.novelty = None
         self.mmff_energy = None
         self.fingerprint = None

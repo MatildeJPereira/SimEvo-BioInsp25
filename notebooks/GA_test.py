@@ -28,9 +28,10 @@ cfg = GAConfig(
 ga = GeneticAlgorithm(cfg, compute_fitness_penalized)
 
 history = ga.evolve(pop, generations=20)
+history_pop= [x[0] for x in history]
 print("Evolution done!")
 
-for gen, p in enumerate(history):
+for gen, p in enumerate(history_pop):
     print(f"\nGeneration {gen}")
     for n in p.molecules:
         print(n.smiles)
@@ -57,7 +58,7 @@ def label_frame(img, gen):
 
 frames = []
 
-for gen, p in enumerate(history):
+for gen, p in enumerate(history_pop):
     print(f"Generation {gen}")
     img = population_grid(p, n=10)  # RDKit-generated image
     img = label_frame(img, gen)     # Add label
@@ -72,6 +73,8 @@ frames[0].save(
     loop=0
 )
 
-from src.view.plots import plot_fitness_over_time
+from src.view.plots import plot_fitness_over_time, plot_all_atom_stats
 
-plot_fitness_over_time(history)
+plot_fitness_over_time(history_pop)
+plot_all_atom_stats(history)
+

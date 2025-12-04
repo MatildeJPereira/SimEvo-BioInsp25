@@ -98,6 +98,9 @@ class GeneticAlgorithm:
         for gen in range(generations):
             print("Generation ", gen)
             population = self.evolve_one_generation(population)
-            history.append(population)
+            avg_carbons = population.compute_carbon_avg()
+            avg_other_atoms = population.compute_other_atoms_avg()
+            avg_complexity = population.compute_complexity_avg()
+            history.append((population,avg_carbons,avg_other_atoms,avg_complexity))
 
         return history
