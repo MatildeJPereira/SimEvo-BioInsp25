@@ -37,7 +37,8 @@ if args.algo == "ga":
         tournament_k=args.tournament_k,
         random_seed=args.seed,
     )
-    algo = GeneticAlgorithm(config, stability_fitness)
+    from ..model.fitness import novelty_augmented_fitness
+    algo = GeneticAlgorithm(config, lambda m: novelty_augmented_fitness(m, novelty_weight=2.0))
 
 elif args.algo == "novelty":
     algo = NoveltySearch()

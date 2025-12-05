@@ -17,8 +17,9 @@ def sanitization_constraint(molecule) -> bool:
     except:
         return True  # sanitizer crashed → definitely invalid
 
+# TODO Verify
 def carbon_pct_constraint(molecule, min_pct: float) -> bool:
-    """Returns True if percentage of carbon atoms exceeds max_carbons (violation)."""
+    """Returns False if percentage of carbon atoms exceeds max_carbons (violation)."""
     if molecule.heavy_atom_count == 0:
         return True  # avoid division by zero; treat as violation
 

@@ -9,3 +9,4 @@ tqdm
 pillow
 imageio~=2.37.2
 ipython~=9.7.0
+pygame

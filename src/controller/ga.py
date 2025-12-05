@@ -25,8 +25,9 @@ class GAConfig:
 # ----------------------------
 # Selection
 # ----------------------------
-def tournament_selection(pop, fitness,k):
+def tournament_selection(pop, fitness, k):
     candidates = random.sample(pop,k)
+    print(candidates)
     return min(candidates, key=lambda m: fitness[m])
 
 # ----------------------------

@@ -20,8 +20,7 @@ class Molecule:
         self.energy = None
         self.tpsa = rdMolDescriptors.CalcTPSA(self.rdkit_mol)
         self.log_p = Crippen.MolLogP(self.rdkit_mol)
-        self.fitness = None
-        self.num_carbons = None
+        self.num_carbons = self.count_carbons()
 
     def compute_fingerprint(self):
         if self.fingerprint is None:

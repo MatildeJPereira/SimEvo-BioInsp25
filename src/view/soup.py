@@ -1,57 +1,99 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-from rdkit.Chem.Draw import MolToImage
+import io
+
+import pygame
 import random
+import numpy as np
+from rdkit.Chem.Draw import MolToImage, rdMolDraw2D
+from io import BytesIO
+import PIL.Image
 
-class MolecularSoup:
-    def __init__(self, population, box_size=10):
+class MolecularSprite:
+    def __init__(self, molecule, x, y):
+        self.molecule = molecule
+        self.x = x
+        self.y = y
+        self.vx = random.uniform(-1, 1)
+        self.vy = random.uniform(-1, 1)
+        self.surface = self.mol_to_surface(molecule)
+
+    # def mol_to_surface(self, mol):
+    #     img = MolToImage(mol.rdkit_mol, size=(120, 120))
+    #     mode = img.mode
+    #     size = img.size
+    #     data = img.tobytes()
+    #     return pygame.image.fromstring(data, size, mode).convert_alpha()
+
+    def mol_to_surface(self, mol, size=(300, 300)):
+        d2d = rdMolDraw2D.MolDraw2DCairo(size[0], size[1])
+        d2d.drawOptions().clearBackground = False
+        d2d.DrawMolecule(mol.rdkit_mol)
+        d2d.FinishDrawing()
+
+        png = d2d.GetDrawingText()
+        bio = io.BytesIO(png)
+        surface = pygame.image.load(bio, "temp.png").convert_alpha()
+        surface = pygame.transform.smoothscale(surface, (130, 130))
+        return surface
+
+    def update(self, width, height):
+        self.x += self.vx
+        self.y += self.vy
+
+        if self.x < 0 or self.x > width -120:
+            self.vx *= -1
+        if self.y < 0 or self.y > height -120:
+            self.vy *= -1
+
+    def draw(self, screen):
+        screen.blit(self.surface, (self.x, self.y))
+
+class MolecularSoupPygame:
+    def __init__(self, population, width=1000, height=800):
+        pygame.init()
+        self.screen = pygame.display.set_mode((width, height))
+        pygame.display.set_caption('Molecular Soup')
+        self.width = width
+        self.height = height
         self.population = population
-        self.box_size = box_size
+        self.sprites = self.create_sprites(population)
 
-        # Random positions
-        self.positions = {
-            mol: np.array([random.uniform(0, box_size), random.uniform(0, box_size)])
-            for mol in population.molecules
-        }
-
-        # Pre-render molecule images
-        self.images = {
-            mol: MolToImage(mol.rdkit_mol, size=(80, 80))
-            for mol in population.molecules
-        }
+    def create_sprites(self, population):
+        sprites = []
+        for mol in population.molecules:
+            x = random.randint(0, self.width -120)
+            y = random.randint(0, self.height -120)
+            sprites.append(MolecularSprite(mol, x, y))
+        return sprites
 
     def update_population(self, population):
-        """Update soup with new generation molecules."""
         self.population = population
+        self.sprites = self.create_sprites(population)
 
-        # Reassign positions but keep same mapping count
-        old_positions = list(self.positions.values())
-        self.positions = {
-            mol: old_positions[i % len(old_positions)]
-            for i, mol in enumerate(population.molecules)
-        }
+    def run(self, update_callback=None):
+        running = True
+        clock = pygame.time.Clock()
+        frame = 0
 
-        # Re-render images
-        self.images = {
-            mol: MolToImage(mol.rdkit_mol, size=(80, 80))
-            for mol in population.molecules
-        }
+        while running:
+            clock.tick(60)
+            frame += 1
 
-    def step_motion(self):
-        """Brownian random motion."""
-        for mol, pos in self.positions.items():
-            self.positions[mol] += np.random.normal(scale=0.2, size=2)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
-            # Keep within bounds
-            self.positions[mol] = np.clip(self.positions[mol], 0, self.box_size)
+            for sprite in self.sprites:
+                sprite.update(self.width, self.height)
 
-    def draw(self, ax):
-        ax.clear()
-        ax.set_xlim(0, self.box_size)
-        ax.set_ylim(0, self.box_size)
+            self.screen.fill((30, 20, 70))
 
-        for mol, pos in self.positions.items():
-            img = OffsetImage(self.images[mol], zoom=0.3)
-            ab = AnnotationBbox(img, pos, frameon=False)
-            ax.add_artist(ab)
+            for sprite in self.sprites:
+                sprite.draw(self.screen)
+
+            pygame.display.flip()
+
+            if update_callback and frame % 300 == 0:
+                new_pop = update_callback(self.population)
+                self.update_population(new_pop)
+
+        pygame.quit()
