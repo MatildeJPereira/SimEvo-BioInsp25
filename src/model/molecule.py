@@ -26,9 +26,8 @@ class Molecule:
 
     def compute_fingerprint(self):
         if self.fingerprint is None:
-            self.fingerprint = rdMolDescriptors.GetMorganFingerprintAsBitVect(
-                self.rdkit_mol, radius=2, nBits=2048
-            )
+            gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+            self.fingerprint = gen.GetFingerprint(self.rdkit_mol)
         return self.fingerprint
 
     def compute_mmff_energy(self):
