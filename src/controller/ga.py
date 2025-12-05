@@ -100,7 +100,24 @@ class GeneticAlgorithm:
             population = self.evolve_one_generation(population)
             avg_carbons = population.compute_carbon_avg()
             avg_other_atoms = population.compute_other_atoms_avg()
-            avg_complexity = population.compute_complexity_avg()
-            history.append((population,avg_carbons,avg_other_atoms,avg_complexity))
+            validation_distance = population.compute_validation_knn_distance([
+
+    # Amino acids
+    "NCC(=O)O", "NC(C)C(=O)O", "NCC(O)C(=O)O", "NC(CC(=O)O)C(=O)O",
+    "NC(CCC(=O)O)C(=O)O", "NC(C(C)C)C(=O)O", "NCC(CO)C(=O)O", "N1CCCC1C(=O)O",
+    "NC(C(CC)C)C(=O)O", "NC(Cc1ccccc1)C(=O)O",
+
+    # Nucleobases
+    "O=c1[nH]c[nH]c1=O", "Nc1ncnc2[nH]cnc12", "O=c1cc[nH]c(=O)[nH]1",
+    "NC(=O)c1ncc[nH]1", "O=c1[nH]cc(=O)n(C)1", "O=c1[nH]c(=O)[nH]c[nH]1",
+
+    # Metabolites
+    "CC(=O)C(=O)O", "CC(O)C(=O)O", "OCC(CC(=O)O)C(=O)O", "O=C(O)C=CC(=O)O",
+
+    # Cofactor fragments
+    "OC[C@H](O)[C@H](O)[C@H](O)CO", "NC(=O)c1ccccn1", "c1ncc[nH]1", "O=C(O)c1ccccn1"
+])
+
+            history.append((population,avg_carbons,avg_other_atoms,validation_distance))
 
         return history
