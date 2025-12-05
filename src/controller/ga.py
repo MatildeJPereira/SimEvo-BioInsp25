@@ -34,13 +34,24 @@ def mu_plus_lambda(parents, offspring, fitness_fn, mu):
     return combined[:mu]
 
 class GeneticAlgorithm:
-    def __init__(self, config: GAConfig, fitness_fn):
+    def __init__(self, config: GAConfig, fitness_fn, novelty_weight=0.05,w_energy=0.01,w_tpsa=0.02,w_logp=0.1, w_carbonpct=0.5):
         self.cfg = config
         self.fitness_fn = fitness_fn
         random.seed(config.random_seed)
-
+        self.novelty_weight = novelty_weight
+        self.w_energy = w_energy
+        self.w_tpsa = w_tpsa
+        self.w_logp = w_logp
+        self.w_carbonpct = w_carbonpct
     def initialize(self, population):
-        population.evaluate(self.fitness_fn)
+        population.evaluate(
+            self.fitness_fn,
+            novelty_weight=self.novelty_weight,
+            w_energy=self.w_energy,
+            w_tpsa=self.w_tpsa,
+            w_logp=self.w_logp,
+            w_carbonpct=self.w_carbonpct
+        )
 
     def select_parent(self, population):
         return tournament_selection(
@@ -73,7 +84,26 @@ class GeneticAlgorithm:
 
         return new_mol
 
+    def has_converged(self, history, threshold=1e-3, patience=5):
+        if len(history) < patience:
+            return False
+
+        vals = [p.fitness_stats["mean"] for p in history[-patience:]]
+        return max(vals) - min(vals) < threshold
+
     def evolve_one_generation(self, population):
+
+
+            # 🔥 FIX: ensure fitness exists before parent selection
+        if len(population.fitness) == 0:
+            population.evaluate(
+                self.fitness_fn,
+                novelty_weight=self.novelty_weight,
+                w_energy=self.w_energy,
+                w_tpsa=self.w_tpsa,
+                w_logp=self.w_logp,
+                w_carbonpct=self.w_carbonpct
+            )
         parents = population.molecules
 
         offspring = []
@@ -88,7 +118,12 @@ class GeneticAlgorithm:
         new_pop = mu_plus_lambda(parents, offspring, self.fitness_fn, self.cfg.mu)
 
         new_population = Population(new_pop)
-        new_population.evaluate(self.fitness_fn)
+        new_population.evaluate(self.fitness_fn,
+    novelty_weight=self.novelty_weight,
+    w_energy=self.w_energy,
+    w_tpsa=self.w_tpsa,
+    w_logp=self.w_logp,
+    w_carbonpct=self.w_carbonpct)
         return new_population
 
     def evolve(self, population, generations):

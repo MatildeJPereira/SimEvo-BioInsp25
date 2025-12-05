@@ -1,5 +1,20 @@
 from rdkit import Chem
 
+def charge_constraint(molecule, max_abs=1) -> bool:
+    """Returns True if formal charge magnitude exceeds max_abs."""
+    rm = molecule.rdkit_mol
+    if rm is None:
+        return True
+    return abs(Chem.GetFormalCharge(rm)) > max_abs
+
+def ring_size_constraint(molecule, min_size=5, max_size=6) -> bool:
+    """Returns True if any ring is outside the allowed size window."""
+    rm = molecule.rdkit_mol
+    if rm is None:
+        return True
+    sizes = [len(r) for r in rm.GetRingInfo().AtomRings()]
+    return any(s < min_size or s > max_size for s in sizes)
+
 def size_constraint(molecule, max_size: int) -> bool:
     """Returns True if molecule exceeds max size (violation)."""
     return molecule.heavy_atom_count > max_size
@@ -30,11 +45,12 @@ def carbon_pct_constraint(molecule, min_pct: float) -> bool:
     carbon_pct = molecule.num_carbons / molecule.heavy_atom_count
     return carbon_pct < min_pct
 
-def check_constraints(molecule, constraints: dict={"sanitize": True,"min_carbon_pct":0.4, "size":25}) -> bool:
+def check_constraints(molecule, constraints: dict={"sanitize": True,"min_carbon_pct":0.4, "size":15, "max_abs_charge": 1}) -> bool:
     CONSTRAINT_FUNCTIONS = {
     "size": size_constraint,
     "sanitize": sanitization_constraint,
-    "min_carbon_pct": carbon_pct_constraint
+    "min_carbon_pct": carbon_pct_constraint,
+    "max_abs_charge": charge_constraint
     # add new constraints here later without touching main code
 }
     """

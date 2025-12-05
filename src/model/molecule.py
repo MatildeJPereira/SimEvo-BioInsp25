@@ -6,7 +6,7 @@
 # This is a trial version and can be changed later
 import selfies as sf
 from rdkit import Chem
-from rdkit.Chem import rdMolDescriptors, rdDistGeom, rdForceFieldHelpers, Crippen, Descriptors
+from rdkit.Chem import rdMolDescriptors, rdDistGeom, rdForceFieldHelpers, Crippen, Descriptors, rdFingerprintGenerator
 
 class Molecule:
     def __init__(self, selfies_str: str):

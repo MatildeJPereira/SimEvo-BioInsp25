@@ -7,12 +7,15 @@ import random
 import selfies as sf
 
 def random_symbol():
-    filtered_alphabet = {'[#Branch1]','[#Branch2]','[#Branch3]','[#C+1]','[#C-1]','[#C]','[#N+1]','[#N]','[#O+1]',
-                         '[#P+1]','[#P-1]','[#P]','[#S+1]','[#S-1]','[#S]','[=Branch1]','[=Branch2]','[=Branch3]',
-                         '[=C+1]','[=C-1]','[=C]','[=N+1]','[=N-1]','[=N]','[=O+1]','[=O]','[=P+1]','[=P-1]','[=P]',
-                         '[=Ring1]','[=Ring2]','[=Ring3]','[=S+1]','[=S-1]','[=S]','[Branch1]','[Branch2]','[Branch3]',
-                         '[C+1]','[C-1]','[C]','[N+1]','[N-1]','[N]','[O+1]','[O-1]','[O]','[P+1]','[P-1]','[P]',
-                         '[Ring1]','[Ring2]','[Ring3]','[S+1]','[S-1]','[S]'}
+    filtered_alphabet = {'[C]','[=C]','[#C]',   # neutral C
+                         '[N]','[=N]',          # neutral N
+                         '[O]','[=O]',          # neutral O
+                         '[S]',#'[=S]',         # neutral S
+                         '[P]',
+                         # optionally, just a few ions:
+                         # '[N+1]', '[O-1]',
+                          '[Branch1]','[Branch2]',
+                          '[Ring1]','[Ring2]'}
     return random.choice(list(filtered_alphabet))
 
 

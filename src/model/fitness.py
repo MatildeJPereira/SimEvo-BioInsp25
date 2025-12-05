@@ -16,6 +16,14 @@ from .novelty import NoveltyArchive
 #     penalty = check_constraints(mol)
 #     return energy + penalty
 
+archive = NoveltyArchive(k=5)
+
+# TODO verify
+def novelty_augmented_fitness(mol, novelty_weight=0.05,w_energy=0.01,w_tpsa=0.02,w_logp=0.1, w_carbonpct=0.5):
+    penalized = compute_fitness_penalized(mol,w_energy,w_tpsa,w_logp, w_carbonpct)
+    novelty = archive.novelty_score(mol)
+    return penalized + novelty_weight * (1 - novelty)
+
 # Working Fitness function
 def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.15):
     E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)

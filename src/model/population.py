@@ -3,7 +3,7 @@
 
 # TODO Trial version that can be updated
 import random
-from rdkit.Chem import DataStructs, rdMolDescriptors
+from rdkit.Chem import DataStructs, rdFingerprintGenerator
 from rdkit.DataStructs import TanimotoSimilarity
 import numpy as np
 import selfies as sf
@@ -13,9 +13,7 @@ class ValidationSet:
     def __init__(self, mol_list):
         self.smiles = mol_list
         self.rdkit_mol = [Chem.MolFromSmiles(s) for s in self.smiles]
-        self.fingerprints = [rdMolDescriptors.GetMorganFingerprintAsBitVect(
-                mol, radius=2, nBits=2048
-            ) if mol is not None else None for mol in self.rdkit_mol]
+        self.fingerprints = [rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048).GetFingerprint(mol) if mol is not None else None for mol in self.rdkit_mol]
 
     def delete_similar_mol(self):
         delete_list=set()
@@ -40,9 +38,17 @@ class Population:
         self.molecules = molecules
         self.fitness = {}
 
-    def evaluate(self, fitness_fn):
+    def evaluate(self, fitness_fn, **weights):
         for mol in self.molecules:
-            self.fitness[mol] = fitness_fn(mol)
+            self.fitness[mol] = fitness_fn(mol,**weights)
+
+        fitness_values = list(self.fitness.values())
+        self.fitness_stats = {
+            "mean": float(sum(fitness_values) / len(fitness_values)),
+            "std": float(np.std(fitness_values)),
+            "min": float(min(fitness_values)),
+            "max": float(max(fitness_values))
+        }
 
     def select_tournament(self, k=3):
         candidates = random.sample(self.molecules, k)
@@ -93,7 +99,7 @@ class Population:
 
         all_target_distances = []
         validation_molecules=ValidationSet(validation_molecules)
-
+        validation_molecules.delete_similar_mol()
 
         for target in validation_molecules.fingerprints:
 

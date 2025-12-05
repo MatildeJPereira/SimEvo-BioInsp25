@@ -4,7 +4,7 @@ sys.path.append("../")
 from src.controller.ga import GeneticAlgorithm, GAConfig
 from src.model.molecule import Molecule
 from src.model.population import Population
-from src.model.fitness import compute_fitness_penalized
+from src.model.fitness import compute_fitness_penalized, novelty_augmented_fitness
 
 # Phosphor molecule we can add back later '[O][P][=Branch1][C][=O][Branch1][C][O][O]'
 
@@ -25,7 +25,7 @@ cfg = GAConfig(
     random_seed=0
 )
 
-ga = GeneticAlgorithm(cfg, compute_fitness_penalized)
+ga = GeneticAlgorithm(cfg, novelty_augmented_fitness)
 
 history = ga.evolve(pop, generations=20)
 history_pop= [x[0] for x in history]
