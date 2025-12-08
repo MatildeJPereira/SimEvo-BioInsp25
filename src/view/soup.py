@@ -16,13 +16,6 @@ class MolecularSprite:
         self.vy = random.uniform(-1, 1)
         self.surface = self.mol_to_surface(molecule)
 
-    # def mol_to_surface(self, mol):
-    #     img = MolToImage(mol.rdkit_mol, size=(120, 120))
-    #     mode = img.mode
-    #     size = img.size
-    #     data = img.tobytes()
-    #     return pygame.image.fromstring(data, size, mode).convert_alpha()
-
     def mol_to_surface(self, mol, size=(300, 300)):
         d2d = rdMolDraw2D.MolDraw2DCairo(size[0], size[1])
         d2d.drawOptions().clearBackground = False
@@ -73,6 +66,10 @@ class MolecularSoupPygame:
         running = True
         clock = pygame.time.Clock()
         frame = 0
+        paused = False
+        speed = 60
+        history = []
+        current_gen_index = 0
 
         while running:
             clock.tick(60)
@@ -82,10 +79,23 @@ class MolecularSoupPygame:
                 if event.type == pygame.QUIT:
                     running = False
 
+                # if event.type == pygame.KEYDOWN:
+                #     if event.key == pygame.K_SPACE:
+                #         paused = not paused
+                #
+                #     if event.key == pygame.K_UP:
+                #         speed = min(240, speed + 10)
+                #
+                #     if event.key == pygame.K_DOWN:
+                #         speed = max(10, speed - 10)
+                #
+                #     if event.key == pygame.K_RIGHT:
+
+
             for sprite in self.sprites:
                 sprite.update(self.width, self.height)
 
-            self.screen.fill((30, 20, 70))
+            self.screen.fill((110, 100, 180))
 
             for sprite in self.sprites:
                 sprite.draw(self.screen)

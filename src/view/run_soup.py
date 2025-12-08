@@ -18,8 +18,13 @@ for s in soup:
 
 pop = Population(initial)
 
-cfg = GAConfig(mu=5, lam=5)
-ga = GeneticAlgorithm(cfg, lambda m: novelty_augmented_fitness(m, novelty_weight=1.5))
+cfg = GAConfig(mu=25,
+    lam=25,
+    mutation_rate=0.5,
+    crossover_rate=0.5,
+    tournament_k=2,
+    random_seed=0)
+ga = GeneticAlgorithm(cfg, lambda m: novelty_augmented_fitness(m))
 
 def evolve_callback(population):
     new_pop = ga.evolve_one_generation(population)
