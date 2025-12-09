@@ -18,7 +18,8 @@ class GAConfig:
     lam: int = 50
     mutation_rate: float = 0.3
     crossover_rate: float = 0.9
-    tournament_k: int = 3
+    tournament_k: int = 2
+    rank_bias: float = 1.7
     elitism: bool = True
     random_seed: int = 42
 
@@ -29,6 +30,30 @@ def tournament_selection(pop, fitness, k):
     candidates = random.sample(pop,k)
     print(candidates)
     return min(candidates, key=lambda m: fitness[m])
+
+
+def rank_selection(pop, fitness, bias=1.7):
+    """
+    Rank-based parent selection for minimization problems.
+    - Sorts molecules by fitness (lower = better).
+    - Assigns exponentially decaying weights controlled by `bias` (>1 → stronger pressure).
+    """
+    if not pop:
+        return None
+
+    ranked = sorted(pop, key=lambda m: fitness[m])  # best first
+    n = len(ranked)
+    # Exponential rank weights: best gets the highest weight
+    weights = [bias ** (n - 1 - i) for i in range(n)]
+    total = sum(weights)
+
+    r = random.random() * total
+    acc = 0.0
+    for mol, w in zip(ranked, weights):
+        acc += w
+        if acc >= r:
+            return mol
+    return ranked[-1]
 
 # ----------------------------
 # Replacement (μ + λ)
