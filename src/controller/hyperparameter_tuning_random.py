@@ -1,5 +1,5 @@
 from src.controller.ga import GeneticAlgorithm, GAConfig
-from src.view.plots import plot_param_pca
+from src.view.plots import pca_landscape
 from ..model.molecule import Molecule
 from ..model.population import Population
 from ..model.fitness import compute_fitness_penalized, novelty_augmented_fitness
@@ -28,7 +28,7 @@ def tune_hyperparameters(
     base_cfg,
     fitness_fn,
     validation_smiles,
-    n_trials=10
+    n_trials=200
 ):
     best_params = None
     best_score = float("inf")
@@ -83,7 +83,7 @@ def tune_hyperparameters(
         if score < best_score:
             best_score = score
             best_params = params
-
+    pca_landscape(top_results)
     top_results = sorted(top_results, key=lambda x: x[0])[:10]
     print("\n======= TOP 10 RESULTS =======")
     for rank, (sc, pr, gen) in enumerate(top_results, 1):

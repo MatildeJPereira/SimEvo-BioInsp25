@@ -1,6 +1,6 @@
 import optuna
 from functools import partial
-from src.view.plots import plot_param_pca,plot_param_pca_3d 
+from src.view.plots import pca_landscape
 from src.controller.ga import GeneticAlgorithm, GAConfig
 from src.model.molecule import Molecule
 from src.model.population import Population
@@ -25,11 +25,11 @@ def objective(trial, base_cfg, validation_smiles, top_results):
 
     # Suggest weights
     params = {
-        "novelty_weight": trial.suggest_float("novelty_weight", -5, 5),
-        "w_energy": trial.suggest_float("w_energy", -1, 1),
-        "w_tpsa": trial.suggest_float("w_tpsa", -2, 2),
-        "w_logp": trial.suggest_float("w_logp", -10, 10),
-        "w_carbonpct": trial.suggest_float("w_carbonpct", -50, 50),
+        "novelty_weight": trial.suggest_float("novelty_weight", -25, 25),
+        "w_energy": trial.suggest_float("w_energy", -5, 5),
+        "w_tpsa": trial.suggest_float("w_tpsa", -10, 10),
+        "w_logp": trial.suggest_float("w_logp", -50, 50),
+        "w_carbonpct": trial.suggest_float("w_carbonpct", -250, 250),
     }
 
     print("\n=== Trial params:", params)
@@ -79,7 +79,7 @@ def tune_with_optuna(base_cfg, validation_smiles, n_trials=10):
     # ----------------------------------------------------------
     # Produce TOP 10 summary as before
     # ----------------------------------------------------------
-    plot_param_pca_3d(top_results)
+    pca_landscape(top_results)
     top_results_sorted = sorted(top_results, key=lambda x: x[0])[:10]
 
     print("\n======= TOP 10 RESULTS =======")
@@ -184,4 +184,4 @@ validation_smiles=[
     "CCC(O)C(=O)O",            # 2-hydroxybutyrate
 ]
 
-best_params, best_score = tune_with_optuna(cfg, validation_smiles, n_trials=30)
+best_params, best_score = tune_with_optuna(cfg, validation_smiles, n_trials=20)
