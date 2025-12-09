@@ -50,6 +50,11 @@ class MolecularSoupPygame:
         self.population = population
         self.sprites = self.create_sprites(population)
 
+        self.paused = False
+        self.speed = 60
+        self.history = []
+        self.current_index = 0
+
     def create_sprites(self, population):
         sprites = []
         for mol in population.molecules:
@@ -62,38 +67,46 @@ class MolecularSoupPygame:
         self.population = population
         self.sprites = self.create_sprites(population)
 
+    def handle_key(self, event, update_callback):
+        if event.key == pygame.K_SPACE:
+            self.paused = not self.paused
+
+        elif event.key == pygame.K_UP:
+            self.speed = min(240, self.speed + 10)
+
+        elif event.key == pygame.K_DOWN:
+            self.speed = max(10, self.speed - 10)
+
+        elif event.key == pygame.K_RIGHT:
+            if update_callback:
+                new = update_callback(self.population)
+                self.history.append(new)
+                self.current_index = len(self.history) - 1
+                self.update_population(new)
+
+        elif event.key == pygame.K_LEFT:
+            if self.current_index > 0:
+                self.current_index -= 1
+                prev = self.history[self.current_index]
+                self.update_population(prev)
+
     def run(self, update_callback=None):
         running = True
         clock = pygame.time.Clock()
         frame = 0
-        paused = False
-        speed = 60
-        history = []
-        current_gen_index = 0
 
         while running:
-            clock.tick(60)
-            frame += 1
+            clock.tick(self.speed)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                if event.type == pygame.KEYDOWN:
+                    self.handle_key(event, update_callback)
 
-                # if event.type == pygame.KEYDOWN:
-                #     if event.key == pygame.K_SPACE:
-                #         paused = not paused
-                #
-                #     if event.key == pygame.K_UP:
-                #         speed = min(240, speed + 10)
-                #
-                #     if event.key == pygame.K_DOWN:
-                #         speed = max(10, speed - 10)
-                #
-                #     if event.key == pygame.K_RIGHT:
-
-
-            for sprite in self.sprites:
-                sprite.update(self.width, self.height)
+            if not self.paused:
+                for sprite in self.sprites:
+                    sprite.update(self.width, self.height)
 
             self.screen.fill((110, 100, 180))
 
@@ -102,8 +115,12 @@ class MolecularSoupPygame:
 
             pygame.display.flip()
 
-            if update_callback and frame % 300 == 0:
-                new_pop = update_callback(self.population)
-                self.update_population(new_pop)
+            if not self.paused:
+                frame += 1
+                if update_callback and frame % 300 == 0:
+                    new_pop = update_callback(self.population)
+                    self.history.append(new_pop)
+                    self.current_index = len(self.history) - 1
+                    self.update_population(new_pop)
 
         pygame.quit()
