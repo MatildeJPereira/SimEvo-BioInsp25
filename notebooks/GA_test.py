@@ -25,7 +25,9 @@ cfg = GAConfig(
     random_seed=0
 )
 
-ga = GeneticAlgorithm(cfg, novelty_augmented_fitness)
+params={'novelty_weight': -19.8904478048076, 'w_energy': 2.450166634623062, 'w_tpsa': 1.2384104684102297, 'w_logp': 42.351047027056524, 'w_carbonpct': 118.10471744589069}
+
+ga = GeneticAlgorithm(cfg, novelty_augmented_fitness,**params)
 
 history = ga.evolve(pop, generations=20)
 history_pop= [x[0] for x in history]
