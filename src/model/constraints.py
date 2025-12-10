@@ -55,7 +55,7 @@ def check_constraints(molecule, constraints=None) -> bool:
     """
     if constraints is None:
         constraints = {
-            "size": 50,
+            "size": 100,
             "sanitize": True,
             "min_carbon_pct": 0.4,
             "ring_size": (5, 6),
