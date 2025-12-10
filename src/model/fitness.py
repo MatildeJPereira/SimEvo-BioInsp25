@@ -67,10 +67,10 @@ def compute_fitness_penalized(
     carbon_pct = molecule.count_carbons() / max(1, molecule.heavy_atom_count)
 
     # Target ranges (tunable)
-    TPSA_low, TPSA_high = 100, 180
-    logP_low, logP_high = 0, 5
-    E_low, E_high = 0, 50   # kcal/mol per heavy atom
-    carbon_pct_low, carbon_pct_high = 0.3, 0.9
+    TPSA_low, TPSA_high = 60, 130
+    logP_low, logP_high = -4, -0.5
+    E_low, E_high = 0, 20   # kcal/mol per heavy atom
+    carbon_pct_low, carbon_pct_high = 0.3, 0.7
 
     # Compute penalties
     p_tpsa = range_penalty(TPSA, TPSA_low, TPSA_high, w_tpsa)
