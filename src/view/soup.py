@@ -43,7 +43,8 @@ class MolecularSprite:
 class MolecularSoupPygame:
     def __init__(self, population, width=1000, height=800):
         pygame.init()
-        self.screen = pygame.display.set_mode((width, height))
+        self.sidebar_width = 280
+        self.screen = pygame.display.set_mode((width + self.sidebar_width, height))
         pygame.display.set_caption('Molecular Soup')
         self.width = width
         self.height = height
@@ -52,8 +53,42 @@ class MolecularSoupPygame:
 
         self.paused = False
         self.speed = 60
-        self.history = []
+        self.history = [population]
         self.current_index = 0
+        self.font = pygame.font.SysFont('Arial', 20)
+
+    def draw_sidebar(self):
+        x0 = self.width
+        pygame.draw.rect(self.screen, (40, 40, 60), (x0, 0, self.sidebar_width, self.height))
+
+        y = 20
+        def write(text):
+            nonlocal y
+            surf = self.font.render(text, True, (230, 230, 255))
+            self.screen.blit(surf, (x0 + 15, y))
+            y += 28
+
+        write(f"Generation: {self.current_index}")
+        write(f"Population Size: {len(self.population.molecules)}")
+
+        if hasattr(self.population, 'fitness') and self.population.fitness:
+            best = min(self.population.fitness, key=lambda m: self.population.fitness[m])
+            bf = self.population.fitness[best]
+            write(f"Best Fitness: {bf:.3f}")
+
+            try:
+                from src.model.fitness import archive
+                nov = archive.novelty_score(best)
+                write(f"Novelty: {nov:.3f}")
+            except Exception:
+                write(f"Novelty: -")
+
+        y += 20
+        write("Controls:")
+        write("SPACE = Pause/Play")
+        write("UP/DOWN = Speed +/-")
+        write("RIGHT = Next Generation")
+        write("LEFT = Previous Generation")
 
     def create_sprites(self, population):
         sprites = []
@@ -109,6 +144,8 @@ class MolecularSoupPygame:
                     sprite.update(self.width, self.height)
 
             self.screen.fill((110, 100, 180))
+
+            self.draw_sidebar()
 
             for sprite in self.sprites:
                 sprite.draw(self.screen)

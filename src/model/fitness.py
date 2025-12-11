@@ -10,7 +10,6 @@ from .novelty import NoveltyArchive
 # Global novelty archive
 archive = NoveltyArchive(k=5)
 
-
 # TODO verify
 def novelty_augmented_fitness(mol, novelty_weight=0.1):
     penalized = compute_fitness_penalized(mol)
