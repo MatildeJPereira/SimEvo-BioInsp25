@@ -57,6 +57,32 @@ class MolecularSoupPygame:
         self.current_index = 0
         self.font = pygame.font.SysFont('Arial', 20)
 
+        self.selected_molecule = None
+        self.selected_zoom_surface = None
+
+    def handle_click(self,pos):
+        mx, my = pos
+        if mx > self.width:
+            return
+        self.selected_molecule = None
+        self.selected_zoom_surface = None
+
+        for sprite in self.sprites:
+            sx, sy = sprite.x, sprite.y
+            sw, sh = sprite.surface.get_width(), sprite.surface.get_height()
+
+            if sx <= mx <= sx + sw and sy <= my <= sy + sh:
+                mol = sprite.molecule
+                self.selected_molecule = mol
+                d2d = rdMolDraw2D.MolDraw2DCairo(250, 250)
+                d2d.drawOptions().clearBackground = True
+                d2d.DrawMolecule(sprite.molecule.rdkit_mol)
+                d2d.FinishDrawing()
+                png = d2d.GetDrawingText()
+                bio = io.BytesIO(png)
+                self.selected_zoom_surface = pygame.image.load(bio, "selected.png").convert_alpha()
+                break
+
     def draw_sidebar(self):
         x0 = self.width
         pygame.draw.rect(self.screen, (40, 40, 60), (x0, 0, self.sidebar_width, self.height))
@@ -71,19 +97,33 @@ class MolecularSoupPygame:
         write(f"Generation: {self.current_index}")
         write(f"Population Size: {len(self.population.molecules)}")
 
-        if hasattr(self.population, 'fitness') and self.population.fitness:
-            best = min(self.population.fitness, key=lambda m: self.population.fitness[m])
-            bf = self.population.fitness[best]
-            write(f"Best Fitness: {bf:.3f}")
+        if self.selected_molecule is not None:
+            mol = self.selected_molecule
+            write("--- Selected ---")
+            write(f"SMILES: {mol.smiles}...")
+            fit = self.population.fitness.get(mol, None)
+            if fit is not None:
+                write(f"Fitness: {fit:.3f}")
+            from src.model.fitness import archive
+            nov = archive.novelty_score(mol)
+            write(f"Novelty: {nov:.3f}")
 
-            try:
-                from src.model.fitness import archive
-                nov = archive.novelty_score(best)
-                write(f"Novelty: {nov:.3f}")
-            except Exception:
-                write(f"Novelty: -")
+            if self.selected_zoom_surface:
+                self.screen.blit(self.selected_zoom_surface, (x0 + 15, y+ 10))
 
-        y += 20
+        else:
+            if hasattr(self.population, 'fitness') and self.population.fitness:
+                best = min(self.population.fitness, key=lambda m: self.population.fitness[m])
+                bf = self.population.fitness[best]
+                write(f"Best Fitness: {bf:.3f}")
+                try:
+                    from src.model.fitness import archive
+                    nov = archive.novelty_score(best)
+                    write(f"Novelty: {nov:.3f}")
+                except Exception:
+                    write(f"Novelty: -")
+
+        y += 400
         write("Controls:")
         write("SPACE = Pause/Play")
         write("UP/DOWN = Speed +/-")
@@ -138,13 +178,14 @@ class MolecularSoupPygame:
                     running = False
                 if event.type == pygame.KEYDOWN:
                     self.handle_key(event, update_callback)
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.handle_click(event.pos)
 
             if not self.paused:
                 for sprite in self.sprites:
                     sprite.update(self.width, self.height)
 
             self.screen.fill((110, 100, 180))
-
             self.draw_sidebar()
 
             for sprite in self.sprites:
