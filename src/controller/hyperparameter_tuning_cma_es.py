@@ -207,7 +207,7 @@ def tune_params_cmaes(
     pop_size=30
 ):
 
-    param_names = ["novelty_weight", "w_energy", "w_tpsa", "w_logp", "w_carbonpct"]
+    param_names = ["novelty_weight", "w_energy", "w_tpsa", "w_logp", "w_hetero"]
 
     def objective(vec):
         params = dict(zip(param_names, vec))

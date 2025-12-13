@@ -29,7 +29,7 @@ def objective(trial, base_cfg, validation_smiles, top_results):
         "w_energy": trial.suggest_float("w_energy", -5, 5),
         "w_tpsa": trial.suggest_float("w_tpsa", -10, 10),
         "w_logp": trial.suggest_float("w_logp", -50, 50),
-        "w_carbonpct": trial.suggest_float("w_carbonpct", -250, 250),
+        "w_hetero": trial.suggest_float("w_hetero", -50, 50),
     }
 
     print("\n=== Trial params:", params)
