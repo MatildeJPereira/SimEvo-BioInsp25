@@ -3,6 +3,7 @@ import io
 import pygame
 import random
 import numpy as np
+from pygments import highlight
 from rdkit.Chem.Draw import MolToImage, rdMolDraw2D
 from io import BytesIO
 import PIL.Image
@@ -37,8 +38,19 @@ class MolecularSprite:
         if self.y < 0 or self.y > height -120:
             self.vy *= -1
 
-    def draw(self, screen):
+    def draw(self, screen, highlight=False):
+        if highlight:
+            radius = int(self.surface.get_width() / 2)
+            fade_circle = draw_fading_circle(radius, (255, 215, 100))
+            screen.blit(fade_circle, (self.x, self.y))
         screen.blit(self.surface, (self.x, self.y))
+
+def draw_fading_circle(radius, color):
+    surf = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
+    for r in range(radius, 0, -1):
+        alpha = int(255 * (r / radius))  # stronger in center
+        pygame.draw.circle(surf, (*color, alpha), (radius, radius), r)
+    return surf
 
 class MolecularSoupPygame:
     def __init__(self, population, width=1000, height=800):
@@ -60,7 +72,7 @@ class MolecularSoupPygame:
         self.selected_molecule = None
         self.selected_zoom_surface = None
 
-    def handle_click(self,pos):
+    def handle_click(self, pos):
         mx, my = pos
         if mx > self.width:
             return
@@ -100,7 +112,7 @@ class MolecularSoupPygame:
         if self.selected_molecule is not None:
             mol = self.selected_molecule
             write("--- Selected ---")
-            write(f"SMILES: {mol.smiles}...")
+            write(f"SMILES: {mol.smiles[:22]}...")
             fit = self.population.fitness.get(mol, None)
             if fit is not None:
                 write(f"Fitness: {fit:.3f}")
@@ -123,12 +135,19 @@ class MolecularSoupPygame:
                 except Exception:
                     write(f"Novelty: -")
 
-        y += 400
-        write("Controls:")
-        write("SPACE = Pause/Play")
-        write("UP/DOWN = Speed +/-")
-        write("RIGHT = Next Generation")
-        write("LEFT = Previous Generation")
+        controls_y = self.height - 150
+
+        def write_bottom(text):
+            nonlocal controls_y
+            surf = self.font.render(text, True, (230, 230, 255))
+            self.screen.blit(surf, (x0 + 15, controls_y))
+            controls_y += 28
+
+        write_bottom("Controls:")
+        write_bottom("SPACE = Pause/Play")
+        write_bottom("UP/DOWN = Speed +/-")
+        write_bottom("RIGHT = Next Generation")
+        write_bottom("LEFT = Previous Generation")
 
     def create_sprites(self, population):
         sprites = []
@@ -153,11 +172,16 @@ class MolecularSoupPygame:
             self.speed = max(10, self.speed - 10)
 
         elif event.key == pygame.K_RIGHT:
-            if update_callback:
-                new = update_callback(self.population)
-                self.history.append(new)
-                self.current_index = len(self.history) - 1
-                self.update_population(new)
+            if self.current_index < len(self.history) - 1:
+                self.current_index += 1
+                nex = self.history[self.current_index]
+                self.update_population(nex)
+            else:
+                if update_callback:
+                    new = update_callback(self.population)
+                    self.history.append(new)
+                    self.current_index = len(self.history) - 1
+                    self.update_population(new)
 
         elif event.key == pygame.K_LEFT:
             if self.current_index > 0:
@@ -188,8 +212,13 @@ class MolecularSoupPygame:
             self.screen.fill((110, 100, 180))
             self.draw_sidebar()
 
+            best_mol = None
+            if hasattr(self.population, 'fitness') and self.population.fitness:
+                best_mol = min(self.population.fitness, key=lambda m: self.population.fitness[m])
+
             for sprite in self.sprites:
-                sprite.draw(self.screen)
+                hl = (sprite.molecule == best_mol)
+                sprite.draw(self.screen, highlight=hl)
 
             pygame.display.flip()
 
