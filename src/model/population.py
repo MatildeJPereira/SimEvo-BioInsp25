@@ -27,7 +27,7 @@ class ValidationSet:
                 if self.fingerprints[j] is None:
                     continue
                 d=TanimotoSimilarity(self.fingerprints[i], self.fingerprints[j])
-                if d>=0.5:
+                if d>=0.8:
                     delete_list.add(j)
         for i in sorted(delete_list, reverse=True):
             self.smiles.pop(i)
@@ -56,6 +56,8 @@ class Population:
     def compute_carbon_avg(self):
         n_carb=0
         for mol in self.molecules:
+            if mol.num_carbons is None:
+                mol.count_carbons()
             n_carb+=mol.num_carbons
         avg=n_carb/len(self.molecules)
         return avg
@@ -79,7 +81,7 @@ class Population:
         avg=compx/len(self.molecules)
         return avg
 
-    def compute_validation_knn_distance(self, validation_molecules, k=5):
+    def compute_validation_knn_distance(self, validation_molecules, k=3):
         """
         Compute average KNN distance between validation molecules and
         the current population using each molecule's own fingerprint.
@@ -100,6 +102,7 @@ class Population:
         all_target_distances = []
         validation_molecules=ValidationSet(validation_molecules)
         validation_molecules.delete_similar_mol()
+        print("Validation set size after removing similar molecules:", len(validation_molecules.smiles))
 
         for target in validation_molecules.fingerprints:
 

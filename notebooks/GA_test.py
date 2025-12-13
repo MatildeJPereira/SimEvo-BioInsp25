@@ -25,7 +25,8 @@ cfg = GAConfig(
     random_seed=0
 )
 
-params={'novelty_weight': -19.8904478048076, 'w_energy': 2.450166634623062, 'w_tpsa': 1.2384104684102297, 'w_logp': 42.351047027056524, 'w_carbonpct': 118.10471744589069}
+#params={'novelty_weight': -70.9891509038727, 'w_energy': -53.90979453309572, 'w_tpsa': 7.826734928172879, 'w_logp': -40.023769229018136, 'w_hetero': -50.506567471054844}
+params={'novelty_weight': 32.146497894175155, 'w_energy': -89.70640677859367, 'w_tpsa': -5.75288816540427, 'w_logp': -67.33963007591916, 'w_hetero': 22.691843955559293}
 
 ga = GeneticAlgorithm(cfg, novelty_augmented_fitness,**params)
 

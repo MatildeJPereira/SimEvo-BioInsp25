@@ -34,7 +34,7 @@ def mu_plus_lambda(parents, offspring, fitness_fn, mu):
     return combined[:mu]
 
 class GeneticAlgorithm:
-    def __init__(self, config: GAConfig, fitness_fn, novelty_weight=0.05,w_energy=0.01,w_tpsa=0.02,w_logp=0.1, w_carbonpct=0.5):
+    def __init__(self, config: GAConfig, fitness_fn, novelty_weight=0.05,w_energy=0.01,w_tpsa=0.02,w_logp=0.1, w_hetero=0.5):
         self.cfg = config
         self.fitness_fn = fitness_fn
         random.seed(config.random_seed)
@@ -42,7 +42,7 @@ class GeneticAlgorithm:
         self.w_energy = w_energy
         self.w_tpsa = w_tpsa
         self.w_logp = w_logp
-        self.w_carbonpct = w_carbonpct
+        self.w_hetero = w_hetero
     def initialize(self, population):
         population.evaluate(
             self.fitness_fn,
@@ -50,7 +50,7 @@ class GeneticAlgorithm:
             w_energy=self.w_energy,
             w_tpsa=self.w_tpsa,
             w_logp=self.w_logp,
-            w_carbonpct=self.w_carbonpct
+            w_hetero=self.w_hetero
         )
 
     def select_parent(self, population):
@@ -61,28 +61,19 @@ class GeneticAlgorithm:
         )
 
     def produce_offspring(self, parent1, parent2):
-        violated = True
-        n = 0
+        if random.random() < self.cfg.crossover_rate:
+            child_selfies = crossover_selfies(parent1.selfies, parent2.selfies)
+        else:
+            child_selfies = parent1.selfies
 
-        while violated and n < 20:
-            if random.random() < self.cfg.crossover_rate:
-                child_selfies = crossover_selfies(parent1.selfies, parent2.selfies)
-            else:
-                child_selfies = parent1.selfies
+        if random.random() < self.cfg.mutation_rate:
+            child_selfies = mutate_selfies(child_selfies)
 
-            if random.random() < self.cfg.mutation_rate:
-                child_selfies = mutate_selfies(child_selfies)
+        new_mol = Molecule(child_selfies)
+        if check_constraints(new_mol):
+            return new_mol
 
-            new_mol = Molecule(child_selfies)
-
-            violated = check_constraints(new_mol)
-            n += 1
-
-        # If we failed 20 times, return *something* valid-ish
-        if violated:
-            return None  # fallback
-
-        return new_mol
+        return None
 
     def has_converged(self, history, threshold=1e-3, patience=5):
         if len(history) < patience:
@@ -102,7 +93,7 @@ class GeneticAlgorithm:
                 w_energy=self.w_energy,
                 w_tpsa=self.w_tpsa,
                 w_logp=self.w_logp,
-                w_carbonpct=self.w_carbonpct
+                w_hetero=self.w_hetero
             )
         parents = population.molecules
 
@@ -123,7 +114,7 @@ class GeneticAlgorithm:
     w_energy=self.w_energy,
     w_tpsa=self.w_tpsa,
     w_logp=self.w_logp,
-    w_carbonpct=self.w_carbonpct)
+    w_hetero=self.w_hetero)
         return new_population
 
     def evolve(self, population, generations):

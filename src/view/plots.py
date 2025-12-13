@@ -87,6 +87,7 @@ def params_to_matrix(top_results):
 # 2. Manual PCA implementation (no sklearn needed)
 ###############################################################################
 def manual_pca(X, n_components=2):
+    param_names = ["novelty_weight", "w_energy", "w_tpsa", "w_logp", "w_hetero"]
     # standardize
     X_mean = X.mean(axis=0)
     X_centered = X - X_mean
@@ -99,9 +100,13 @@ def manual_pca(X, n_components=2):
 
     # sort by eigenvalue descending
     idx = np.argsort(eigvals)[::-1]
+    loadings=eigvecs[:, :2]
     eigvecs = eigvecs[:, idx]
     eigvals = eigvals[idx]
 
+    print("\n===== PCA LOADINGS =====")
+    for name, (a, b) in zip(param_names, loadings):
+        print(f"{name:>15} | PC1={a:.4f} | PC2={b:.4f}")
     # project onto principal components
     PC = X_centered @ eigvecs[:, :n_components]
 

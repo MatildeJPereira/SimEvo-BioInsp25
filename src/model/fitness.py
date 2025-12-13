@@ -3,29 +3,33 @@
 # Combined fitness function
 
 
-from .constraints import check_constraints
 from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors
+from rdkit.Chem import AllChem, Descriptors, rdMolDescriptors
 from .novelty import NoveltyArchive
+from .constraints import check_constraints
 
-
-
-# Deprecated
-# def stability_fitness(mol):
-#     energy = mol.compute_mmff_energy()
-#     penalty = check_constraints(mol)
-#     return energy + penalty
-
+# Global novelty archive
 archive = NoveltyArchive(k=5)
 
 # TODO verify
-def novelty_augmented_fitness(mol, novelty_weight=0.05,w_energy=0.01,w_tpsa=0.02,w_logp=0.1, w_carbonpct=0.5):
-    penalized = compute_fitness_penalized(mol,w_energy,w_tpsa,w_logp, w_carbonpct)
+def novelty_augmented_fitness(mol,    
+        w_energy=0.01,
+        w_tpsa=0.1,
+        w_logp=0.2,
+        w_hetero=0.1, 
+        novelty_weight=0.1):
+    penalized = compute_fitness_penalized(
+        mol,
+        w_energy,
+        w_tpsa,
+        w_logp,
+        w_hetero
+        )
     novelty = archive.novelty_score(mol)
     return penalized + novelty_weight * (1 - novelty)
 
 # Working Fitness function
-def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.15):
+def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.2):
     E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
     TPSA = molecule.tpsa
     logP = molecule.log_p
@@ -38,7 +42,76 @@ def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.15):
     )
     return fitness
 
-######################################################################
+# Updated fitness function with symmetric penalties
+def compute_fitness_penalized(
+        molecule,
+        w_energy=0.01,
+        w_tpsa=0.1,
+        w_logp=0.2,
+        w_hetero=0.1):
+
+    E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
+    TPSA = molecule.tpsa
+    logP = molecule.log_p
+
+    TPSA_low, TPSA_high = 40, 160
+    logP_low, logP_high = -3, 2
+    E_low, E_high = 4, 20
+
+    p_tpsa = band_penalty(TPSA, TPSA_low, TPSA_high, w_tpsa)
+    p_logp = band_penalty(logP, logP_low, logP_high, w_logp)
+    p_energy = band_penalty(E, E_low, E_high, w_energy)
+    p_hetero = w_hetero * hetero_distribution_penalty(molecule)
+
+    fitness = p_energy + p_tpsa + p_logp + p_hetero
+    molecule.fitness = fitness
+    return fitness
+
+def hetero_distribution_penalty(
+    mol,
+    max_hetero_frac=0.4,
+    interior_w=0.4,
+    hh_adj_w=0.2,
+    frac_w=0.3,
+):
+    """
+    Penalizes (a) interior hetero atoms (non-C) in aliphatic chains,
+    (b) hetero–hetero adjacencies, and (c) overall hetero fraction above a band.
+    Lower = better. Tune weights to taste.
+    """
+    rm = mol.rdkit_mol
+    if rm is None:
+        return 5.0  # hard penalty on invalid mol
+
+    atoms = list(rm.GetAtoms())
+    heavy = rm.GetNumHeavyAtoms() or 1
+    hetero_idxs = [a.GetIdx() for a in atoms if a.GetAtomicNum() != 6]
+
+    # hetero fraction penalty (soft cap)
+    hetero_frac = len(hetero_idxs) / heavy
+    p_frac = 0.0
+    if hetero_frac > max_hetero_frac:
+        p_frac = frac_w * (hetero_frac - max_hetero_frac) ** 2
+
+    # interior hetero: not in ring, degree >=2, with >=2 carbon neighbors (sp3-ish chain)
+    p_interior = 0.0
+    for idx in hetero_idxs:
+        a = atoms[idx]
+        if a.IsInRing():
+            continue  # allow hetero in rings
+        carbon_neighbors = [n for n in a.GetNeighbors() if n.GetAtomicNum() == 6]
+        if len(carbon_neighbors) >= 2:
+            p_interior += interior_w  # flat penalty per interior hetero
+
+    # hetero-hetero adjacencies
+    p_hh = 0.0
+    for bond in rm.GetBonds():
+        a1, a2 = bond.GetBeginAtom(), bond.GetEndAtom()
+        if a1.GetAtomicNum() != 6 and a2.GetAtomicNum() != 6:
+            p_hh += hh_adj_w
+
+    return p_frac + p_interior + p_hh
+
 # Fitness penalized for abs(MMFF, TPSA, logP)
 # Two-sided penalty helper
 def range_penalty(x, low, high, weight):
@@ -52,117 +125,10 @@ def range_penalty(x, low, high, weight):
         return weight * (x - high)**2
     return 0.0
 
-# Updated fitness function with symmetric penalties
-def compute_fitness_penalized(
-        molecule,
-        w_energy=0.01,
-        w_tpsa=0.02,
-        w_logp=0.1,
-        w_carbonpct=0.5):
 
-    # Normalize MMFF energy per heavy atom
-    E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
-    TPSA = molecule.tpsa
-    logP = molecule.log_p
-    carbon_pct = molecule.count_carbons() / max(1, molecule.heavy_atom_count)
-
-    # Target ranges (tunable)
-    TPSA_low, TPSA_high = 60, 130
-    logP_low, logP_high = -4, -0.5
-    E_low, E_high = 0, 20   # kcal/mol per heavy atom
-    carbon_pct_low, carbon_pct_high = 0.3, 0.7
-
-    # Compute penalties
-    p_tpsa = range_penalty(TPSA, TPSA_low, TPSA_high, w_tpsa)
-    p_logp = range_penalty(logP, logP_low, logP_high, w_logp)
-    p_energy = range_penalty(E, E_low, E_high, w_energy)
-    p_carbonpct = range_penalty(carbon_pct, carbon_pct_low, carbon_pct_high, w_carbonpct)
-
-    # Fitness = sum of penalties (lower = better)
-    fitness = p_energy + p_tpsa + p_logp + p_carbonpct
-    molecule.fitness = fitness
-    return fitness
-############################################################################
-
-
-def compute_descriptors(molecule):
-    mol = Chem.MolFromSmiles(molecule.smiles)
-    if mol is None:
-        return None, None
-    tpsa = Descriptors.TPSA(mol)
-    logp = Descriptors.MolLogP(mol)
-    return tpsa, logp
-
-def normalize(values):
-    vals = [v for v in values if v is not None]
-    if len(vals) == 0:
-        return [0 for _ in values]
-
-    min_v = min(vals)
-    max_v = max(vals)
-
-    if max_v == min_v:  # avoid division by zero
-        return [0.5 for _ in values]  # all identical → neutral
-
-    return [( (v - min_v) / (max_v - min_v) ) if v is not None else 0 
-            for v in values]
-
-
-
-# TODO this needs to be changed to receive a molecule and not a population
-# This is weird, but maybe we could calculate it without normalization first, and then normalize afterwards
-def compute_population_fitness(molecule, population):
-    """
-    Computes all descriptors, normalizes them, computes fitness,
-    and stores fitness in molecule.fitness.
-    """
-
-    # --- 1) FIRST compute novelty ---
-    archive = NoveltyArchive()
-    score = archive.novelty_score(molecule)
-    # compute_population_novelty(population) # TODO this shouldn't be here, maybe put it up a level
-
-    # --- 2) Compute raw descriptors --- # TODO these don't need to be lists
-    energies = []
-    tpsas = []
-    logps = []
-    novelties = []
-    carbon_counts = []
-
-    for mol in population:  # TODO remove the for and make it just a single molecule
-        mol.count_carbons()
-        e = mol.compute_mmff_energy()
-        tpsa, logp = compute_descriptors(mol)
-
-        mol.mmff_energy = e
-        mol.tpsa = tpsa
-        mol.log_p = logp
-        
-        energies.append(e/max(1,mol.heavy_atom_count))  # normalize by size
-        tpsas.append(tpsa)
-        logps.append(logp)
-        novelties.append(mol.novelty)
-        carbon_counts.append(mol.num_carbons/mol.heavy_atom_count)
-
-    # --- 3) Normalize all properties --- # TODO This might all be able to be done in a single line
-    E_norm     = normalize(energies)
-    TPSA_norm  = normalize(tpsas)
-    LogP_norm  = normalize(logps)
-    Novelty_norm = normalize(novelties)
-    Carbon_norm = normalize(carbon_counts)
-
-    # --- 4) Compute final fitness for each molecule --- # TODO remove the for, do only for the one molecule
-    for mol, e_n, t_n, l_n, n_n, c_n in zip(population, E_norm, TPSA_norm, LogP_norm, Novelty_norm, Carbon_norm):
-        
-        # Lower energy = better → stability = (1 - normalized energy)
-        #stability_score = 1.0 - e_n
-        
-        mol.fitness = (
-            e_n
-            - 0.35 * t_n
-            + 0.15 * l_n
-            - 0.05 * n_n
-            - 0.10 * c_n
-        )
-
-    return population # TODO return fitness
+def band_penalty(x, low, high, weight):
+    if x is None:
+        return weight * 10
+    mid = 0.5 * (low + high)
+    halfw = 0.5 * (high - low)
+    return weight * ((x - mid) / halfw) ** 2
