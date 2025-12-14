@@ -2,13 +2,7 @@ import io
 
 import pygame
 import random
-import numpy as np
-from pygments import highlight
 from rdkit.Chem.Draw import MolToImage, rdMolDraw2D
-from io import BytesIO
-import PIL.Image
-
-
 
 class MolecularSprite:
     def __init__(self, molecule, x, y):
