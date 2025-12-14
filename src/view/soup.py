@@ -8,6 +8,8 @@ from rdkit.Chem.Draw import MolToImage, rdMolDraw2D
 from io import BytesIO
 import PIL.Image
 
+
+
 class MolecularSprite:
     def __init__(self, molecule, x, y):
         self.molecule = molecule
@@ -26,7 +28,7 @@ class MolecularSprite:
         png = d2d.GetDrawingText()
         bio = io.BytesIO(png)
         surface = pygame.image.load(bio, "temp.png").convert_alpha()
-        surface = pygame.transform.smoothscale(surface, (130, 130))
+        surface = pygame.transform.smoothscale(surface, (120, 120))
         return surface
 
     def update(self, width, height):
@@ -38,11 +40,17 @@ class MolecularSprite:
         if self.y < 0 or self.y > height -120:
             self.vy *= -1
 
-    def draw(self, screen, highlight=False):
+    def draw(self, screen, highlight=False, highlight_novelty=False):
         if highlight:
             radius = int(self.surface.get_width() / 2)
             fade_circle = draw_fading_circle(radius, (255, 215, 100))
             screen.blit(fade_circle, (self.x, self.y))
+
+        if highlight_novelty:
+            radius = int(self.surface.get_width() / 2)
+            fade_circle = draw_fading_circle(radius, (132, 205, 161))
+            screen.blit(fade_circle, (self.x, self.y))
+
         screen.blit(self.surface, (self.x, self.y))
 
 def draw_fading_circle(radius, color):
@@ -100,9 +108,9 @@ class MolecularSoupPygame:
         pygame.draw.rect(self.screen, (40, 40, 60), (x0, 0, self.sidebar_width, self.height))
 
         y = 20
-        def write(text):
+        def write(text, color=(230, 230, 255)):
             nonlocal y
-            surf = self.font.render(text, True, (230, 230, 255))
+            surf = self.font.render(text, True, color)
             self.screen.blit(surf, (x0 + 15, y))
             y += 28
 
@@ -115,10 +123,10 @@ class MolecularSoupPygame:
             write(f"SMILES: {mol.smiles[:22]}...")
             fit = self.population.fitness.get(mol, None)
             if fit is not None:
-                write(f"Fitness: {fit:.3f}")
+                write(f"Fitness: {fit:.3f}", (255, 215, 100))
             from src.model.fitness import archive
             nov = archive.novelty_score(mol)
-            write(f"Novelty: {nov:.3f}")
+            write(f"Novelty: {nov:.3f}", (132, 205, 161))
 
             if self.selected_zoom_surface:
                 self.screen.blit(self.selected_zoom_surface, (x0 + 15, y+ 10))
@@ -127,13 +135,13 @@ class MolecularSoupPygame:
             if hasattr(self.population, 'fitness') and self.population.fitness:
                 best = min(self.population.fitness, key=lambda m: self.population.fitness[m])
                 bf = self.population.fitness[best]
-                write(f"Best Fitness: {bf:.3f}")
+                write(f"Best Fitness: {bf:.3f}", (255, 215, 100))
                 try:
                     from src.model.fitness import archive
                     nov = archive.novelty_score(best)
-                    write(f"Novelty: {nov:.3f}")
+                    write(f"Novelty: {nov:.3f}", (132, 205, 161))
                 except Exception:
-                    write(f"Novelty: -")
+                    write(f"Novelty: -",(132, 205, 161))
 
         controls_y = self.height - 150
 
@@ -212,13 +220,21 @@ class MolecularSoupPygame:
             self.screen.fill((110, 100, 180))
             self.draw_sidebar()
 
-            best_mol = None
+            best_mol_fitness = None
+            best_mol_novelty = None
             if hasattr(self.population, 'fitness') and self.population.fitness:
-                best_mol = min(self.population.fitness, key=lambda m: self.population.fitness[m])
+                best_mol_fitness = min(self.population.fitness, key=lambda m: self.population.fitness[m])
+
+            from src.model.fitness import archive
+            best_mol_novelty = max(self.population.molecules, key=lambda m: archive.novelty_score(m))
 
             for sprite in self.sprites:
-                hl = (sprite.molecule == best_mol)
-                sprite.draw(self.screen, highlight=hl)
+                if sprite.molecule == best_mol_fitness:
+                    sprite.draw(self.screen, highlight=True)
+                if sprite.molecule == best_mol_novelty:
+                    sprite.draw(self.screen, highlight_novelty=True)
+                else:
+                    sprite.draw(self.screen)
 
             pygame.display.flip()
 
