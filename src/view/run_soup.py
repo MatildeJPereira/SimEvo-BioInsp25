@@ -33,7 +33,7 @@ cfg = GAConfig(mu=40,
     tournament_k=2,
     random_seed=0)
 
-ga = GeneticAlgorithm(cfg, lambda m: novelty_augmented_fitness(m))
+ga = GeneticAlgorithm(cfg, lambda m: novelty_augmented_fitness(m, novelty_weight=0.5))
 
 def evolve_callback(population):
     new_pop = ga.evolve_one_generation(population)
