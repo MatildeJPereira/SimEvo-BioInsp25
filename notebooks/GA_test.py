@@ -26,7 +26,33 @@ cfg = GAConfig(
 )
 
 #params={'novelty_weight': -70.9891509038727, 'w_energy': -53.90979453309572, 'w_tpsa': 7.826734928172879, 'w_logp': -40.023769229018136, 'w_hetero': -50.506567471054844}
-params={'novelty_weight': 32.146497894175155, 'w_energy': -89.70640677859367, 'w_tpsa': -5.75288816540427, 'w_logp': -67.33963007591916, 'w_hetero': 22.691843955559293}
+#params={'novelty_weight': 32.146497894175155, 'w_energy': -89.70640677859367, 'w_tpsa': -5.75288816540427, 'w_logp': -67.33963007591916, 'w_hetero': 22.691843955559293}
+
+# with novelty
+
+#5 gen
+params={'novelty_weight': 0.27431148086451107, 'w_energy': -0.4842840532722916, 'w_tpsa': -0.7246637144082346, 'w_logp': 0.9915391504042148, 'w_hetero': -0.8013546226403754}
+
+#10 gen best
+params={'novelty_weight': 0.6180132166303702, 'w_energy': -0.08873746080592704, 'w_tpsa': -0.777414081516488, 'w_logp': 0.6136156144531175, 'w_hetero': -0.3988390962845214}
+
+#15 gen
+#params={'novelty_weight': -0.4403734375876669, 'w_energy': 0.7948100567919711, 'w_tpsa': -0.7243509368688497, 'w_logp': -0.32908971279110144, 'w_hetero': -0.5910537976664327}
+
+#20 gen 
+#params={'novelty_weight': 0.47311668291256526, 'w_energy': 0.33287674537060297, 'w_tpsa': -0.8315825100999428, 'w_logp': -0.7378674342251692, 'w_hetero': 0.546824985633023}
+
+#without novelty
+
+#20 gen
+params={'novelty_weight': 0, 'w_energy': 0.05985470110082258, 'w_tpsa': -0.9100448002447541, 'w_logp': 0.20528996961759582, 'w_hetero': -0.02761460203758359}
+
+#10 gen
+params={'novelty_weight': 0, 'w_energy': -0.03632714143203408, 'w_tpsa': -0.7203894704371934, 'w_logp': -0.8319049244822354, 'w_hetero': 0.6996763649393194}
+params={'novelty_weight': 0, 'w_energy': -2.1554807472084873e-05, 'w_tpsa': -0.7636313151225684, 'w_logp': 0.39727110393992576, 'w_hetero': 0.06471711681256193}
+
+#5 gen best
+params={'novelty_weight': 0, 'w_energy': -0.1266398758035003, 'w_tpsa': 0.06247975459209559, 'w_logp': 0.17361012570960666, 'w_hetero': 0.09148137558222172}
 
 ga = GeneticAlgorithm(cfg, novelty_augmented_fitness,**params)
 

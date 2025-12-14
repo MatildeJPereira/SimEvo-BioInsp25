@@ -25,11 +25,11 @@ def objective(trial, base_cfg, validation_smiles, top_results):
 
     # Suggest weights
     params = {
-        "novelty_weight": trial.suggest_float("novelty_weight", -25, 25),
-        "w_energy": trial.suggest_float("w_energy", -5, 5),
-        "w_tpsa": trial.suggest_float("w_tpsa", -10, 10),
-        "w_logp": trial.suggest_float("w_logp", -50, 50),
-        "w_hetero": trial.suggest_float("w_hetero", -50, 50),
+        "novelty_weight": 0,
+        "w_energy": trial.suggest_float("w_energy", -0.2, 0.2),
+        "w_tpsa": trial.suggest_float("w_tpsa", -1, 1),
+        "w_logp": trial.suggest_float("w_logp", -1, 1),
+        "w_hetero": trial.suggest_float("w_hetero", -0.2, 0.2),
     }
 
     print("\n=== Trial params:", params)
@@ -42,7 +42,7 @@ def objective(trial, base_cfg, validation_smiles, top_results):
 
     # Run with early stopping
     history = []
-    max_gens = 30
+    max_gens = 5
 
     for gen in range(max_gens):
         pop = ga.evolve_one_generation(pop)
@@ -184,4 +184,4 @@ validation_smiles=[
     "CCC(O)C(=O)O",            # 2-hydroxybutyrate
 ]
 
-best_params, best_score = tune_with_optuna(cfg, validation_smiles, n_trials=20)
+best_params, best_score = tune_with_optuna(cfg, validation_smiles, n_trials=50)

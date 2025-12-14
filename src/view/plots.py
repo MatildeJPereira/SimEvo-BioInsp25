@@ -147,7 +147,7 @@ def plot_surface_landscape(PC, fitness, resolution=80):
     )
 
     # Scatter original points on top (optional)
-    ax.scatter(x, y, z, color="black", s=20, label="Samples")
+    #ax.scatter(x, y, z, color="black", s=20, label="Samples")
 
     ax.set_xlabel("PCA1")
     ax.set_ylabel("PCA2")

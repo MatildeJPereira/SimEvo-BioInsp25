@@ -27,7 +27,7 @@ class ValidationSet:
                 if self.fingerprints[j] is None:
                     continue
                 d=TanimotoSimilarity(self.fingerprints[i], self.fingerprints[j])
-                if d>=0.8:
+                if d>=0.5:
                     delete_list.add(j)
         for i in sorted(delete_list, reverse=True):
             self.smiles.pop(i)

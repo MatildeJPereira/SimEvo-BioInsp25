@@ -28,7 +28,7 @@ def tune_hyperparameters(
     base_cfg,
     fitness_fn,
     validation_smiles,
-    n_trials=20
+    n_trials=15
 ):
     best_params = None
     best_score = float("inf")
@@ -38,11 +38,11 @@ def tune_hyperparameters(
     for trial in range(n_trials):
         # sample random weights
         params = {
-            "novelty_weight": random.uniform(-100, 100),
-            "w_energy": random.uniform(-100, 100),
-            "w_tpsa": random.uniform(-10, 10),
-            "w_logp": random.uniform(-100, 100),
-            "w_hetero": random.uniform(-100, 100)
+            "novelty_weight": 0,
+            "w_energy": random.uniform(-1, 1),
+            "w_tpsa": random.uniform(-1, 1),
+            "w_logp": random.uniform(-1, 1),
+            "w_hetero": random.uniform(-1, 1)
         }
 
         print("\n=== Trial", trial, "params:", params)
@@ -59,7 +59,7 @@ def tune_hyperparameters(
 
         # evolve with early stopping
         history = []
-        gens_to_converge = 8
+        gens_to_converge = 10
 
 
         for gen in range(50):      # max generations
@@ -184,5 +184,5 @@ validation_smiles=[
     "CCC(O)C(=O)O",            # 2-hydroxybutyrate
 ]
 
-best_params, score = tune_hyperparameters(cfg, novelty_augmented_fitness, validation_smiles)
+best_params, score = tune_hyperparameters(cfg, novelty_augmented_fitness, validation_smiles, n_trials=1000)
 print("Best:", best_params, "Score:", score)
