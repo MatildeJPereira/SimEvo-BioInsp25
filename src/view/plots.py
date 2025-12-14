@@ -21,7 +21,7 @@ def plot_fitness_over_time(history):
     plt.show()
 
 def plot_all_atom_stats(history):
-    comp = [h[3] for h in history]
+    comp = [x["all_validation"] for x in history]
     plt.plot(comp, label="distance")
 
     plt.xlabel("Generation")
@@ -214,4 +214,19 @@ def pca_landscape(top_results):
 
     plot_contour_landscape(PC, fitness)
 
+def plot_validation_by_group(history):
+    generations = [h["generation"] for h in history]
+
+    group_names = history[0]["validation"].keys()
+
+    for group in group_names:
+        values = [h["validation"][group] for h in history]
+        plt.plot(generations, values, label=group)
+
+    plt.xlabel("Generation")
+    plt.ylabel("Mean kNN Tanimoto distance")
+    plt.title("Validation distance by chemical family")
+    plt.legend(loc="upper right")
+    plt.tight_layout()
+    plt.show()
 

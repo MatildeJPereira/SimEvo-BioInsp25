@@ -13,7 +13,6 @@ from ..model.molecule import Molecule
 from ..model.novelty import NoveltyArchive
 
 
-
 @dataclass
 class GAConfig:
     mu: int = 50
@@ -117,107 +116,35 @@ class GeneticAlgorithm:
     w_hetero=self.w_hetero)
         return new_population
 
-    def evolve(self, population, generations):
+    def evolve(self, population, generations, validation_groups):
         self.initialize(population)
         history = []
 
         for gen in range(generations):
-            print("Generation ", gen)
+            print("Generation", gen)
+
             population = self.evolve_one_generation(population)
+
             avg_carbons = population.compute_carbon_avg()
             avg_other_atoms = population.compute_other_atoms_avg()
-            validation_distance = population.compute_validation_knn_distance(validation_smiles=[
-    # === 1. Alpha amino acids ===
-    "NCC(=O)O",
-    "NC(C)C(=O)O",
-    "NCC(O)C(=O)O",
-    "NC(CC(=O)O)C(=O)O",
-    "NC(CCC(=O)O)C(=O)O",
-    "NC(C(C)C)C(=O)O",
-    "NCC(CO)C(=O)O",
-    "N1CCCC1C(=O)O",
-    "NC(Cc1ccccc1)C(=O)O",
-    "NC(CS)C(=O)O",
-    "NC(C=O)C(=O)O",
-    "NC(CN)C(=O)O",
-    "NCC(C)C(=O)O",
-    "NC(CO)C(=O)O",
-    "NC(Cc1[nH]cnc1)C(=O)O",
-    "NC(Cc1ccc(O)cc1)C(=O)O",
-    "NC(Cc1c[nH]c2ccccc12)C(=O)O",
-    "NC(Cc1ccc(CO)cc1)C(=O)O",
-    "NC(COO)C(=O)O",
-    "NC(CCO)C(=O)O",
 
-    # === 2. Beta/gamma amino acids ===
-    "NCCC(=O)O",
-    "NCCCC(=O)O",
-    "NCC(O)C(=O)O",
-    "NCCCO",
-    "NCCC(O)C(=O)O",
+            # === Per-group validation ===
+            all_validation_scores = population.compute_validation_knn_distance(
+                validation_molecules=[mol for group in validation_groups.values() for mol in group])
+            validation_scores = {}
+            for group_name, smiles_list in validation_groups.items():
+                validation_scores[group_name] = population.compute_validation_knn_distance(
+                    validation_molecules=smiles_list
+                )
 
-    # === 3. Hydroxy acids ===
-    "CC(O)C(=O)O",        # lactic acid
-    "OCC(=O)O",           # glycolic acid
-    "OCC(O)C(=O)O",       # malic acid
-    "OC(=O)CC(=O)O",      # succinic acid
-    "O=C(O)CCC(=O)O",     # 4-hydroxybutyrate precursor
-
-    # === 4. Keto acids ===
-    "CC(=O)C(=O)O",       # pyruvate
-    "O=C(O)C(=O)O",       # oxalate
-    "O=C(O)CC(=O)O",      # malonate
-    "O=C(O)CCC(=O)O",     # succinate
-    "O=C(O)C(=O)C(=O)O",  # oxalosuccinate-like
-
-    # === 5. Short dipeptides (very proto-bio) ===
-    "NCC(=O)NCC(=O)O",        # Gly-Gly
-    "NC(C)C(=O)NCC(=O)O",     # Ala-Gly
-    "NCC(=O)NC(C)C(=O)O",     # Gly-Ala
-    "NCC(=O)NC(CO)C(=O)O",    # Gly-Ser
-
-    # === 6. Polyamines (prebiotic catalysts) ===
-    "NCCN",
-    "NCCCCN",
-    "NCCCN",
-    "NCCNCCN",
-    "NCCCCCCN",
-    "NCCCNCCN",
-
-    # === 7. Small prebiotic N-containing molecules ===
-    "NC=O",          # formamide
-    "NC#N",          # cyanamide
-    "N=C=O",         # isocyanic acid
-    "N=C(N)N",       # diaminocarbene precursor
-    "CNC=O",         # methylformamide
-
-    # === 8. Nucleobase-like fragments ===
-    "O=C1NC=NC=N1",            # uracil-like core
-    "NC1=NC=NC=N1",            # adenine fragment
-    "N1C=NC=N1",               # diaminopyrimidine
-    "O=CNC=N",                 # formamidine-urea
-    "O=C1NCCN1",               # imidazolidone
-
-    # === 9. TCA/glycolysis intermediates ===
-    "O=CC(O)C(=O)O",           # glycerate
-    "O=CC(=O)CO",              # glyoxylate
-    "O=CC(O)CO",               # glyceraldehyde
-    "OC(CO)C(=O)O",            # hydroxypropionate
-
-    # === 10. Cofactor/fragments (small size only) ===
-    "NC(=O)c1ccccn1",          # nicotinamide fragment
-    "O=C(O)c1ccccn1",          # pyridinecarboxylate
-    "c1ncc[nH]1",              # pyrimidine fragment
-    "OC[C@H](O)[C@H](O)CO",    # sugar alcohol fragment (glycerol aldehyde-like)
-    "O=C(O)c1ccncc1",          # pyridyl-carboxylate
-
-    # === 11. Extra proto-bio organic acids ===
-    "CC(=O)OC(=O)C",           # acetoacetate-like
-    "CCOC(=O)C",               # ethyl acetate precursor
-    "CC(=O)CO",                # acetoacetic alcohol
-    "CCC(O)C(=O)O",            # 2-hydroxybutyrate
-])
-
-            history.append((population,avg_carbons,avg_other_atoms,validation_distance))
+            history.append({
+                "generation": gen,
+                "population": population,
+                "avg_carbons": avg_carbons,
+                "avg_other_atoms": avg_other_atoms,
+                "validation": validation_scores,
+                "all_validation": all_validation_scores
+            })
 
         return history
+

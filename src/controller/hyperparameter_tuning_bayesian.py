@@ -26,10 +26,10 @@ def objective(trial, base_cfg, validation_smiles, top_results):
     # Suggest weights
     params = {
         "novelty_weight": 0,
-        "w_energy": trial.suggest_float("w_energy", -0.2, 0.2),
+        "w_energy": trial.suggest_float("w_energy", -1, 1),
         "w_tpsa": trial.suggest_float("w_tpsa", -1, 1),
         "w_logp": trial.suggest_float("w_logp", -1, 1),
-        "w_hetero": trial.suggest_float("w_hetero", -0.2, 0.2),
+        "w_hetero": trial.suggest_float("w_hetero", -1, 1),
     }
 
     print("\n=== Trial params:", params)
@@ -42,7 +42,7 @@ def objective(trial, base_cfg, validation_smiles, top_results):
 
     # Run with early stopping
     history = []
-    max_gens = 5
+    max_gens = 10
 
     for gen in range(max_gens):
         pop = ga.evolve_one_generation(pop)
@@ -176,12 +176,6 @@ validation_smiles=[
     "c1ncc[nH]1",              # pyrimidine fragment
     "OC[C@H](O)[C@H](O)CO",    # sugar alcohol fragment (glycerol aldehyde-like)
     "O=C(O)c1ccncc1",          # pyridyl-carboxylate
-
-    # === 11. Extra proto-bio organic acids ===
-    "CC(=O)OC(=O)C",           # acetoacetate-like
-    "CCOC(=O)C",               # ethyl acetate precursor
-    "CC(=O)CO",                # acetoacetic alcohol
-    "CCC(O)C(=O)O",            # 2-hydroxybutyrate
 ]
 
-best_params, best_score = tune_with_optuna(cfg, validation_smiles, n_trials=50)
+best_params, best_score = tune_with_optuna(cfg, validation_smiles, n_trials=250)
