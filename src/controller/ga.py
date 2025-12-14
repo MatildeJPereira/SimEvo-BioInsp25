@@ -110,14 +110,20 @@ class GeneticAlgorithm:
         from ..model.fitness import archive
         parents = population.molecules
         offspring = []
+        attempts = 0
 
         for _ in range(self.cfg.lam):
+            attempts += 1
             p1 = self.select_parent(population)
             p2 = self.select_parent(population)
 
             new_offspring = self.produce_offspring(p1, p2)
             if new_offspring is not None:
                 offspring.append(new_offspring)
+            acceptance_rate = len(offspring) / attempts
+        
+        print(f"Accepted offspring: {len(offspring)}/{attempts} "
+              f"(rate={acceptance_rate:.2f})")
 
         new_pop = mu_plus_lambda(parents, offspring, self.fitness_fn, self.cfg.mu)
         new_population = Population(new_pop)

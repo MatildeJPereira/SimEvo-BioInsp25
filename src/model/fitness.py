@@ -17,6 +17,32 @@ def novelty_augmented_fitness(mol, novelty_weight=0.1):
     novelty = archive.novelty_score(mol)
     return penalized + novelty_weight * (1 - novelty)
 
+def compute_dummy_fitness(
+                molecule,
+        w_energy=0.01,
+        w_tpsa=0.1,
+        w_logp=0.2,
+        w_hetero=0.1):
+
+    E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
+    TPSA = molecule.tpsa
+    logP = molecule.log_p
+
+    TPSA_low, TPSA_high = 40, 180
+    logP_low, logP_high = 0, 5
+    E_low, E_high = 3, 40
+
+    p_tpsa = range_penalty(TPSA, TPSA_low, TPSA_high, w_tpsa)
+    p_logp = range_penalty(logP, logP_low, logP_high, w_logp)
+    p_energy = range_penalty(E, E_low, E_high, w_energy)
+    p_hetero = w_hetero * hetero_distribution_penalty(molecule)
+
+    fitness = p_energy + p_tpsa + p_logp + p_hetero
+    molecule.fitness = fitness
+    return fitness
+
+
+
 # Working Fitness function
 def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.2):
     E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)

@@ -82,8 +82,8 @@ def plot_multiple_fitness_histories(histories, labels=None):
         linewidth=2.5,
     )
     ax.grid(False)
-    ax.set_title("Fitness Across Simulations")
+    ax.set_title("Fitness Comparison Across Strategies")
     ax.set_xlabel("Generation")
-    ax.set_ylabel("Mean Fitness")
+    ax.set_ylabel("Mean Fitness (-Penalty)")
     plt.tight_layout()
     plt.show()
