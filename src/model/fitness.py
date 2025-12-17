@@ -69,9 +69,9 @@ def compute_fitness_penalized(
     TPSA = molecule.tpsa
     logP = molecule.log_p
 
-    TPSA_low, TPSA_high = 40, 180
-    logP_low, logP_high = 0, 5
-    E_low, E_high = 3, 40
+    TPSA_low, TPSA_high = 0, 200
+    logP_low, logP_high = -3, 9
+    E_low, E_high = -8, 6
 
     p_tpsa = band_penalty(TPSA, TPSA_low, TPSA_high, w_tpsa)
     p_logp = band_penalty(logP, logP_low, logP_high, w_logp)

@@ -11,15 +11,19 @@ sns.set_theme(style="whitegrid", context="talk")  # nicer default style
 
 
 def _mean_scores_from_history(history):
-    """Convert a GA history into a list of mean fitness scores per generation."""
     means = []
     for pop in history:
-        vals = list(pop.fitness.values())
-        if not vals:
-            means.append(float("nan"))
-            continue
-        mean_penalty = sum(vals) / len(vals)
-        means.append(-mean_penalty)   # penalties -> scores (higher = better)
+        # only keep numeric fitness values
+        vals = [v for v in pop.fitness.values() if v is not None and pd.notna(v)]
+        if len(vals) == 0:
+            means.append(None)   # seaborn skips None too, but we'll handle below
+        else:
+            means.append(-(sum(vals) / len(vals)))
+    # if some early entries are None, fill them forward from the first valid value
+    # so the curve starts at generation 0 in the plot
+    first_valid = next((m for m in means if m is not None), None)
+    if first_valid is not None:
+        means = [first_valid if m is None else m for m in means]
     return means
 
 
@@ -69,7 +73,7 @@ def plot_multiple_fitness_histories(histories, labels=None):
 
     df = pd.DataFrame(rows)
 
-    plt.figure(figsize=(10, 6),  facecolor="#C2A5CF")
+    plt.figure(figsize=(10, 6),  facecolor="#84cda1")
     ax = sns.lineplot(
         data=df,
         x="Generation",
@@ -82,8 +86,8 @@ def plot_multiple_fitness_histories(histories, labels=None):
         linewidth=2.5,
     )
     ax.grid(False)
-    ax.set_title("Fitness Comparison Across Strategies")
+    ax.set_title("Fitness Comparison Across Selection and Replacement Strategies")
     ax.set_xlabel("Generation")
-    ax.set_ylabel("Mean Fitness (-Penalty)")
+    ax.set_ylabel("Mean Fitness (-Penalty Score)")
     plt.tight_layout()
     plt.show()
