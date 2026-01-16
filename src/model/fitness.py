@@ -1,22 +1,36 @@
-# MMFF94 energy computation
-# Penalties for chemical cnstraints (charge, valence, size)
-# Combined fitness function
-
+# Here we have different fitness functions (penalized and with novelty components)
+# We have several weighted components in the combined penalty 
+# (including MMFF94 energy computation, topological surface area, 
+# logp as a hydrophobicity measure, number of heteroatoms in carbon chains)
 
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors, rdMolDescriptors
 from .novelty import NoveltyArchive
 from .constraints import check_constraints
 
-# Global novelty archive
+# global novelty archive
 archive = NoveltyArchive(k=5)
 
 # TODO verify
-def novelty_augmented_fitness(mol, novelty_weight=0.1):
-    penalized = compute_fitness_penalized(mol)
-    novelty = archive.novelty_score(mol)
-    return penalized + novelty_weight * (1 - novelty)
 
+# the first naive fitness function which minimizes MMFF energy and logP (hydrophobicity),
+# and maximizes tpsa (solubility). Used just as a test
+def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.2):
+    E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
+    TPSA = molecule.tpsa
+    logP = molecule.log_p
+
+    # MINIMIZATION fitness function
+    fitness = (
+            w_energy * E  # lower is better
+            - w_tpsa * TPSA  # higher TPSA is better
+            + w_logP * logP  # lower logP is better
+    )
+    return fitness
+
+# another fitness function with a range_penalty 
+# (treats MMFF, tpsa, logp and heteroatom parameters thats fall inside 
+# a given range as 0 penalty)
 def compute_dummy_fitness(
                 molecule,
         w_energy=0.01,
@@ -43,21 +57,9 @@ def compute_dummy_fitness(
 
 
 
-# Working Fitness function
-def compute_fitness(molecule, w_energy=1.0, w_tpsa=0.35, w_logP=0.2):
-    E = molecule.compute_mmff_energy() / max(1, molecule.heavy_atom_count)
-    TPSA = molecule.tpsa
-    logP = molecule.log_p
-
-    # MINIMIZATION fitness function
-    fitness = (
-            w_energy * E  # lower is better
-            - w_tpsa * TPSA  # higher TPSA lowers fitness (good)
-            + w_logP * logP  # higher logP raises fitness (bad)
-    )
-    return fitness
-
-# Updated fitness function with symmetric penalties
+# updated penalty fitness function with band penalties
+# (penalizes deviation from the given "sweet spot"
+# even inside the plausible range of each descriptor)
 def compute_fitness_penalized(
         molecule,
         w_energy=0.01,
@@ -69,6 +71,7 @@ def compute_fitness_penalized(
     TPSA = molecule.tpsa
     logP = molecule.log_p
 
+    # setting low and high values for each descriptor (based on common chemical sense and literature)
     TPSA_low, TPSA_high = 0, 200
     logP_low, logP_high = -3, 9
     E_low, E_high = -8, 6
@@ -82,6 +85,18 @@ def compute_fitness_penalized(
     molecule.fitness = fitness
     return fitness
 
+# fitness function with novelty component (select the weight manually)
+# based on band penalized fitness function
+def novelty_augmented_fitness(mol, novelty_weight=0.1):
+    penalized = compute_fitness_penalized(mol)
+    novelty = archive.novelty_score(mol)
+    return penalized + novelty_weight * (1 - novelty)
+
+
+# Helper functions:
+# function for penalizing many heteroatoms inside carbon chains
+# this is not in the constraints due to the fact that we want some heteroatoms inside,
+# and don't want to restrict them fully
 def hetero_distribution_penalty(
     mol,
     max_hetero_frac=0.4,
@@ -92,7 +107,7 @@ def hetero_distribution_penalty(
     """
     Penalizes (a) interior hetero atoms (non-C) in aliphatic chains,
     (b) hetero–hetero adjacencies, and (c) overall hetero fraction above a band.
-    Lower = better. Tune weights to taste.
+    Lower = better. Tune weights manually.
     """
     rm = mol.rdkit_mol
     if rm is None:
@@ -102,13 +117,13 @@ def hetero_distribution_penalty(
     heavy = rm.GetNumHeavyAtoms() or 1
     hetero_idxs = [a.GetIdx() for a in atoms if a.GetAtomicNum() != 6]
 
-    # hetero fraction penalty (soft cap)
+    # overall heteroatom fraction penalty (soft cap)
     hetero_frac = len(hetero_idxs) / heavy
     p_frac = 0.0
     if hetero_frac > max_hetero_frac:
         p_frac = frac_w * (hetero_frac - max_hetero_frac) ** 2
 
-    # interior hetero: not in ring, degree >=2, with >=2 carbon neighbors (sp3-ish chain)
+    # interior heteroatoms in chains: not in ring, degree >=2, with >=2 carbon neighbors (sp3-ish chain)
     p_interior = 0.0
     for idx in hetero_idxs:
         a = atoms[idx]
@@ -118,7 +133,7 @@ def hetero_distribution_penalty(
         if len(carbon_neighbors) >= 2:
             p_interior += interior_w  # flat penalty per interior hetero
 
-    # hetero-hetero adjacencies
+    # heteroatom-heteroatom adjacencies (penalty for having heteroatoms together)
     p_hh = 0.0
     for bond in rm.GetBonds():
         a1, a2 = bond.GetBeginAtom(), bond.GetEndAtom()
@@ -128,7 +143,7 @@ def hetero_distribution_penalty(
     return p_frac + p_interior + p_hh
 
 # Fitness penalized for abs(MMFF, TPSA, logP)
-# Two-sided penalty helper
+# Two-sided range penalty helper (inside the range penalty = 0, soft)
 def range_penalty(x, low, high, weight):
     """
     penalizes x when it falls outside [low, high].
@@ -140,7 +155,9 @@ def range_penalty(x, low, high, weight):
         return weight * (x - high)**2
     return 0.0
 
-
+# band penalty (quadratic penalty depending on how far from the "sweet spot"
+# of each deascriptor we are). The sweet spot is computed based on the low and high values 
+# passed as parameters for each descriptor
 def band_penalty(x, low, high, weight):
     if x is None:
         return weight * 10

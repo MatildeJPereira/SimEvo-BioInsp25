@@ -1,11 +1,10 @@
-# Plots with matplotlib or seaborn:
+# Plots with matplotlib and seaborn:
 # - mean/median fitness per generation
-# - diversity scores
-# - archive growth
+# - multiple strategies fitness comparison
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pandas as pd   # <- new
+import pandas as pd 
 
 sns.set_theme(style="whitegrid", context="talk")  # nicer default style
 

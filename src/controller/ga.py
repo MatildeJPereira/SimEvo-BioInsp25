@@ -56,14 +56,15 @@ def rank_selection(pop, fitness, bias=1.7):
     return ranked[-1]
 
 # ----------------------------
-# Replacement (μ + λ)
+# Replacement
 # ----------------------------
+# mu plus lambda replacement strategy
 def mu_plus_lambda(parents, offspring, fitness_fn, mu):
     combined = parents + offspring
     combined.sort(key=lambda m: fitness_fn(m))
     return combined[:mu]
 
-# another replacement strategy
+# mu comma lambda replacement strategy
 def mu_comma_lambda(parents, offspring, fitness_fn, mu):
     """
     Strict (μ,λ) selection:
@@ -164,7 +165,7 @@ class GeneticAlgorithm:
 
     def evolve(self, population, generations):
         self.initialize(population)
-        history = [population]  # <-- generation 0
+        history = [population]  # <- generation 0
         for gen in range(generations):
             print("Generation ", gen)
             population = self.evolve_one_generation(population)
