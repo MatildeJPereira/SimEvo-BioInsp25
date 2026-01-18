@@ -6,6 +6,7 @@
 import random
 import selfies as sf
 
+# using the filtered alphabet to create only chemically plausible molecules
 def random_symbol():
     filtered_alphabet = {'[C]','[=C]','[#C]',   # neutral C
                          '[N]','[=N]',          # neutral N

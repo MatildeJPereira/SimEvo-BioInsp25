@@ -22,7 +22,7 @@ def sanitization_constraint(molecule) -> bool:
 def carbon_pct_constraint(molecule, min_pct: float) -> bool:
     """Returns False if percentage of carbon atoms exceeds max_carbons (violation)."""
     if molecule.heavy_atom_count == 0:
-        return True  # avoid division by zero; treat as violation
+        return True  # avoid division by zero, treat as violation
 
     if molecule.num_carbons is None:
         molecule.count_carbons()
@@ -56,7 +56,7 @@ def check_constraints(molecule, constraints=None) -> bool:
     """
     if constraints is None:
         constraints = {
-            "size": 50,
+            "size": 100,
             "sanitize": True,
             "min_carbon_pct": 0.4,
             "ring_size": (5, 6),
@@ -84,7 +84,7 @@ def check_constraints(molecule, constraints=None) -> bool:
         elif isinstance(target, tuple):
             violated = func(molecule, *target)
         else:
-            violated = func(molecule, target)  # pass parameter (e.g., size limit)
+            violated = func(molecule, target)  # pass parameter (size limit, etc)
 
         if violated:
             return False  # stop early: violation found

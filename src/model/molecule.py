@@ -1,3 +1,4 @@
+# Setting the Molecule class
 # Convert SELFIES to SMILES to RDKit molecules
 # Validity Checks
 # Caching fingerprints (for novelty calc)

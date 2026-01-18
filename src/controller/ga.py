@@ -3,6 +3,7 @@
 
 import random
 from dataclasses import dataclass
+from typing import Callable, Optional
 
 from ..model.constraints import check_constraints
 from ..model.population import Population
@@ -55,41 +56,61 @@ def rank_selection(pop, fitness, bias=1.7):
     return ranked[-1]
 
 # ----------------------------
-# Replacement (μ + λ)
+# Replacement
 # ----------------------------
+# mu plus lambda replacement strategy
 def mu_plus_lambda(parents, offspring, fitness_fn, mu):
     combined = parents + offspring
     combined.sort(key=lambda m: fitness_fn(m))
     return combined[:mu]
 
-# another replacement strategy
-def mu_comma_lambda(offspring, fitness_fn, mu):
+# mu comma lambda replacement strategy
+def mu_comma_lambda(parents, offspring, fitness_fn, mu):
     """
-    (μ, λ) selection:
-    - parents are used only to generate offspring
-    - next generation is the best μ offspring
+    Strict (μ,λ) selection:
+    - next generation is the best μ offspring ONLY
+    - parents never survive
     """
+    if len(offspring) < mu:
+        raise RuntimeError(
+            f"(μ,λ) requires at least mu={mu} offspring, got {len(offspring)}. "
+            "Increase max_attempts / lam, or relax constraints."
+        )
     offspring.sort(key=lambda m: fitness_fn(m))
     return offspring[:mu]
 
 # ----------------------------
-# Modular Genetic Algorithm
+# Modular GA
 # ----------------------------
+ParentSelector = Callable[[Population], Molecule]
+Replacer = Callable[[list, list, Callable, int], list]
+
 class GeneticAlgorithm:
-    def __init__(self, config: GAConfig, fitness_fn):
+    def __init__(
+        self,
+        config: GAConfig,
+        fitness_fn: Callable,
+        parent_selector: Optional[ParentSelector] = None,
+        replacer: Optional[Replacer] = None,
+    ):
         self.cfg = config
         self.fitness_fn = fitness_fn
+        self.parent_selector = parent_selector
+        self.replacer = replacer
         random.seed(config.random_seed)
 
     def initialize(self, population):
         population.evaluate(self.fitness_fn)
 
     def select_parent(self, population):
-        return tournament_selection(
-            population.molecules,
-            population.fitness,
-            self.cfg.tournament_k,
-        )
+        # default (backwards-compatible)
+        if self.parent_selector is None:
+            return tournament_selection(
+                population.molecules,
+                population.fitness,
+                self.cfg.tournament_k,
+            )
+        return self.parent_selector(population)
 
     def produce_offspring(self, parent1, parent2):
         if random.random() < self.cfg.crossover_rate:
@@ -101,17 +122,19 @@ class GeneticAlgorithm:
             child_selfies = mutate_selfies(child_selfies)
 
         new_mol = Molecule(child_selfies)
-        if check_constraints(new_mol):
-            return new_mol
-
-        return None
+        return new_mol if check_constraints(new_mol) else None
 
     def evolve_one_generation(self, population):
         from ..model.fitness import archive
+
         parents = population.molecules
         offspring = []
+        attempts = 0
+        target = max(self.cfg.lam, self.cfg.mu)
+        max_attempts = 50 * target  # better tied to target
 
-        for _ in range(self.cfg.lam):
+        while len(offspring) < target and attempts < max_attempts:
+            attempts += 1
             p1 = self.select_parent(population)
             p2 = self.select_parent(population)
 
@@ -119,11 +142,22 @@ class GeneticAlgorithm:
             if new_offspring is not None:
                 offspring.append(new_offspring)
 
-        new_pop = mu_plus_lambda(parents, offspring, self.fitness_fn, self.cfg.mu)
+        if len(offspring) < target:
+            raise RuntimeError(
+        f"Could not generate enough valid offspring: {len(offspring)}/{target} "
+        f"after {attempts} attempts. Constraints too strict or max_attempts too low."
+    )
+
+        acceptance_rate = len(offspring) / attempts if attempts else 0.0
+        print(f"Accepted offspring: {len(offspring)}/{attempts} (rate={acceptance_rate:.2f})")
+
+        # default (backwards-compatible)
+        replacer = self.replacer or mu_plus_lambda
+        new_pop = replacer(parents, offspring, self.fitness_fn, self.cfg.mu)
+
         new_population = Population(new_pop)
         new_population.evaluate(self.fitness_fn)
 
-        # Update novelty archive with best molecule
         best = min(new_population.molecules, key=lambda m: new_population.fitness[m])
         archive.add(best)
 
@@ -131,11 +165,9 @@ class GeneticAlgorithm:
 
     def evolve(self, population, generations):
         self.initialize(population)
-        history = []
-
+        history = [population]  # <- generation 0
         for gen in range(generations):
             print("Generation ", gen)
             population = self.evolve_one_generation(population)
             history.append(population)
-
         return history
