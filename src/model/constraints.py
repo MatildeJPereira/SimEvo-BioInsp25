@@ -1,29 +1,31 @@
+# Constraint functions for validating molecule structures.
+# Each function returns True if the constraint is violated, and false if satisfied.
+# Used by the GA to filter chemically implausible offspring.
+
 from rdkit import Chem
-from rdkit.Chem import rdForceFieldHelpers
+
 
 def size_constraint(molecule, max_size: int) -> bool:
     """Returns True if molecule exceeds max size (violation)."""
     return molecule.heavy_atom_count > max_size
 
+
 def sanitization_constraint(molecule) -> bool:
-    """
-    Returns True if sanitization fails (violation).
-    """
+    """Returns True if sanitization fails (violation)."""
     if molecule.smiles is None:
-        return True  # invalid
+        return True
 
     try:
         mol = Chem.MolFromSmiles(molecule.smiles, sanitize=True)
-        return mol is None  # True → violation
+        return mol is None  # None → invalid
     except:
-        return True  # sanitizer crashed → definitely invalid
+        return True  # sanitizer crashed
 
-# TODO Verify
+
 def carbon_pct_constraint(molecule, min_pct: float) -> bool:
     """Returns False if percentage of carbon atoms exceeds max_carbons (violation)."""
     if molecule.heavy_atom_count == 0:
-        return True  # avoid division by zero, treat as violation
-
+        return True
     if molecule.num_carbons is None:
         molecule.count_carbons()
     carbon_pct = molecule.num_carbons / molecule.heavy_atom_count
@@ -62,31 +64,31 @@ def check_constraints(molecule, constraints=None) -> bool:
             "ring_size": (5, 6),
             "max_abs_charge": 1,
         }
+
+    # Map constraint names to functions
     constraint_function = {
         "size": size_constraint,
         "sanitize": sanitization_constraint,
         "min_carbon_pct": carbon_pct_constraint,
         "ring_size": ring_size_constraint,
         "max_abs_charge": charge_constraint
-        # add new constraints here later without touching main code
     }
 
     for name, target in constraints.items():
-        
         if name not in constraint_function:
             raise ValueError(f"Unknown constraint: {name}")
 
         func = constraint_function[name]
 
-        # If constraint has a parameter (e.g., max_size)
+        # Parameter handling
         if isinstance(target, bool):
-            violated = func(molecule)   # no parameters
+            violated = func(molecule)
         elif isinstance(target, tuple):
             violated = func(molecule, *target)
         else:
-            violated = func(molecule, target)  # pass parameter (size limit, etc)
+            violated = func(molecule, target)
 
         if violated:
-            return False  # stop early: violation found
+            return False
 
     return True

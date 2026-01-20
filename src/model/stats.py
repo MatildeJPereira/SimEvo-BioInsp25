@@ -14,6 +14,7 @@ def mean_fitness_curve(history):
         curve.append(-mean_penalty)  # convert penalty → score
     return np.array(curve)
 
+
 def auc_from_curve(curve):
     """
     Computes AUC using trapezoidal rule.
@@ -21,7 +22,6 @@ def auc_from_curve(curve):
     """
     generations = np.arange(len(curve))
     return np.trapezoid(curve, generations)
-
 
 
 def wilcoxon_rank_sum(aucs_a, aucs_b, alternative="two-sided"):

@@ -1,48 +1,59 @@
-# Mutation & crossover on SELFIES: 
-# - mutation: substitute, insert, delete 
-# crossover: cut SELFIES at random position
-# occasional sanity check by converting back to RDKit
+# SELFIES-based variation operators: mutation and crossover.
+# All operators return valid SELFIES strings by construction.
 
 import random
 import selfies as sf
 
-# using the filtered alphabet to create only chemically plausible molecules
 def random_symbol():
-    filtered_alphabet = {'[C]','[=C]','[#C]',   # neutral C
-                         '[N]','[=N]',          # neutral N
-                         '[O]','[=O]',          # neutral O
-                         '[S]',#'[=S]',         # neutral S
-                         '[P]',
-                         # optionally, just a few ions:
-                         # '[N+1]', '[O-1]',
-                          '[Branch1]','[Branch2]',
-                          '[Ring1]','[Ring2]'}
-# previous alphabet
-#    {'[#Branch1]','[#Branch2]','[#Branch3]','[#C+1]','[#C-1]','[#C]','[#N+1]','[#N]','[#O+1]',
-#                         '[#P+1]','[#P-1]','[#P]','[#S+1]','[#S-1]','[#S]','[=Branch1]','[=Branch2]','[=Branch3]',
-#                         '[=C+1]','[=C-1]','[=C]','[=N+1]','[=N-1]','[=N]','[=O+1]','[=O]','[=P+1]','[=P-1]','[=P]',
-#                         '[=Ring1]','[=Ring2]','[=Ring3]','[=S+1]','[=S-1]','[=S]','[Branch1]','[Branch2]','[Branch3]',
-#                         '[C+1]','[C-1]','[C]','[N+1]','[N-1]','[N]','[O+1]','[O-1]','[O]','[P+1]','[P-1]','[P]',
-#                         '[Ring1]','[Ring2]','[Ring3]','[S+1]','[S-1]','[S]'}
-    
+    """
+    Return a randomly chosen SELFIES token from a filtered alphabet.
+    The alphabet is limited to common CHONPS atoms and ring/branch tokens
+    to keep molecules chemically plausible while enabling diversity.
+    """
+    filtered_alphabet = {
+        '[C]','[=C]','[#C]',        # neutral carbon variants
+        '[N]','[=N]',               # nitrogen
+        '[O]','[=O]',               # oxygen
+        '[S]',                      # sulfur
+        '[P]',                      # phosphorus
+        '[Branch1]','[Branch2]',    # branching
+        '[Ring1]','[Ring2]'}        # ring indicators
     return random.choice(list(filtered_alphabet))
 
 
 def mutate_selfies(selfies_str):
+    """
+    Apply a random mutation: insert, delete, or replace a SELFIES symbol.
+    Mutation always yields a syntactically valid SELFIES string.
+    """
     symbols = list(sf.split_selfies(selfies_str))
     op = random.choice(["insert", "delete", "replace"])
+
+    # INSERT: add a symbol at a random position
     if op == "insert":
         pos = random.randrange(len(symbols))
         symbols.insert(pos, random_symbol())
+
+    # DELETE: remove a symbol if molecule would remain non-empty
     elif op == "delete" and len(symbols) > 1:
         pos = random.randrange(len(symbols))
         symbols.pop(pos)
+
+    # REPLACE: overwrite an existing symbol with a new one
     elif op == "replace":
         pos = random.randrange(len(symbols))
         symbols[pos] = random_symbol()
+
+    # Join into a new SELFIES string
     return ''.join(symbols)
 
 def crossover_selfies(a, b):
+    """
+    Single‑point crossover between two SELFIES strings.
+
+    Cuts each parent at an independent random point and concatenates
+    prefix(a) with suffix(b). This operation always yields valid SELFIES.
+    """
     a_s = list(sf.split_selfies(a))
     b_s = list(sf.split_selfies(b))
     cut_a = random.randrange(len(a_s))
