@@ -23,11 +23,10 @@ Requires **Python 3.10**
 `pip install -r requirements.txt`
 
 ## Running a GA experiment (Console)
-`python -m src.controller.experiment_runner --algo ga --gens 50`
+`python -m src.controller.experiment_runner --gens 50`
 
 Example with custom parameters:
 `python -m src.controller.experiment_runner
---algo ga
 --gens 100
 --mu 40 --lam 40
 -- mutation 0.4 --crossover 0.8`

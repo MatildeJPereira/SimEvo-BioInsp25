@@ -1,5 +1,5 @@
-# Main GA pipeline
-# selection -> crossover -> mutation -> evaluation -> replacement (μ + λ)
+# Genetic Algorithm implementation (μ + λ) for evolving SELFIES-encoded molecules.
+# Provides parent selection, mutation, crossover, constraint filtering, and evaluation.
 
 import random
 from dataclasses import dataclass
@@ -15,12 +15,13 @@ from ..model.molecule import Molecule
 # ----------------------------
 @dataclass
 class GAConfig:
-    mu: int = 50
-    lam: int = 50
+    """Configuration object for GA hyperparameters."""
+    mu: int = 50                # parent population size
+    lam: int = 50               # offspring population size
     mutation_rate: float = 0.3
     crossover_rate: float = 0.9
     tournament_k: int = 2
-    rank_bias: float = 1.7
+    rank_bias: float = 1.7      # controls pressure in rank selection
     elitism: bool = True
     random_seed: int = 42
 
@@ -28,6 +29,7 @@ class GAConfig:
 # Selection
 # ----------------------------
 def tournament_selection(pop, fitness, k):
+    """Return best of k randomly sampled molecules (minimization)."""
     candidates = random.sample(pop,k)
     return min(candidates, key=lambda m: fitness[m])
 
@@ -35,19 +37,21 @@ def tournament_selection(pop, fitness, k):
 def rank_selection(pop, fitness, bias=1.7):
     """
     Rank-based parent selection for minimization problems.
+
     - Sorts molecules by fitness (lower = better).
-    - Assigns exponentially decaying weights controlled by `bias` (>1 → stronger pressure).
+    - Assigns exponentially decaying weights controlled by `bias` (>1 -> stronger pressure).
     """
     if not pop:
         return None
 
     ranked = sorted(pop, key=lambda m: fitness[m])  # best first
     n = len(ranked)
-    # Exponential rank weights: best gets the highest weight
+
+    # Exponential rank weights
     weights = [bias ** (n - 1 - i) for i in range(n)]
     total = sum(weights)
-
     r = random.random() * total
+
     acc = 0.0
     for mol, w in zip(ranked, weights):
         acc += w
@@ -58,8 +62,8 @@ def rank_selection(pop, fitness, bias=1.7):
 # ----------------------------
 # Replacement
 # ----------------------------
-# mu plus lambda replacement strategy
 def mu_plus_lambda(parents, offspring, fitness_fn, mu):
+    """(μ + λ) replacement: select best μ from combined pool."""
     combined = parents + offspring
     combined.sort(key=lambda m: fitness_fn(m))
     return combined[:mu]
@@ -68,7 +72,8 @@ def mu_plus_lambda(parents, offspring, fitness_fn, mu):
 def mu_comma_lambda(parents, offspring, fitness_fn, mu):
     """
     Strict (μ,λ) selection:
-    - next generation is the best μ offspring ONLY
+
+    - next generation is the best μ offspring only
     - parents never survive
     """
     if len(offspring) < mu:
@@ -80,12 +85,14 @@ def mu_comma_lambda(parents, offspring, fitness_fn, mu):
     return offspring[:mu]
 
 # ----------------------------
-# Modular GA
+# GA Class
 # ----------------------------
 ParentSelector = Callable[[Population], Molecule]
 Replacer = Callable[[list, list, Callable, int], list]
 
 class GeneticAlgorithm:
+    """Main GA executor performing selection, variation, and replacement."""
+
     def __init__(
         self,
         config: GAConfig,
@@ -99,11 +106,14 @@ class GeneticAlgorithm:
         self.replacer = replacer
         random.seed(config.random_seed)
 
+    # Initialization
     def initialize(self, population):
+        """Compute initial fitness for all molecules."""
         population.evaluate(self.fitness_fn)
 
+    # Selection helpers
     def select_parent(self, population):
-        # default (backwards-compatible)
+        """Select a parent using configured method (default: tournament)."""
         if self.parent_selector is None:
             return tournament_selection(
                 population.molecules,
@@ -112,27 +122,40 @@ class GeneticAlgorithm:
             )
         return self.parent_selector(population)
 
+    # Variation operators
     def produce_offspring(self, parent1, parent2):
+        """
+        Apply crossover and mutation.
+        Return new Molecule or None if invalid.
+        """
+        # Crossover
         if random.random() < self.cfg.crossover_rate:
             child_selfies = crossover_selfies(parent1.selfies, parent2.selfies)
         else:
             child_selfies = parent1.selfies
 
+        # Mutation
         if random.random() < self.cfg.mutation_rate:
             child_selfies = mutate_selfies(child_selfies)
 
         new_mol = Molecule(child_selfies)
+
+        # Reject if constraint violation occurs
         return new_mol if check_constraints(new_mol) else None
 
+    #Single generation
     def evolve_one_generation(self, population):
-        from ..model.fitness import archive
+        """Produce one new generation using μ + λ replacement (default)."""
+        from ..model.fitness import archive # global novelty archive
 
         parents = population.molecules
         offspring = []
         attempts = 0
-        target = max(self.cfg.lam, self.cfg.mu)
-        max_attempts = 50 * target  # better tied to target
 
+        target = max(self.cfg.lam, self.cfg.mu) # ensure enough offspring
+        max_attempts = 50 * target              # safety cap
+
+        # Variation loop
         while len(offspring) < target and attempts < max_attempts:
             attempts += 1
             p1 = self.select_parent(population)
@@ -144,30 +167,36 @@ class GeneticAlgorithm:
 
         if len(offspring) < target:
             raise RuntimeError(
-        f"Could not generate enough valid offspring: {len(offspring)}/{target} "
-        f"after {attempts} attempts. Constraints too strict or max_attempts too low."
-    )
+                f"Could not generate enough valid offspring: {len(offspring)}/{target} "
+                f"after {attempts} attempts. Constraints too strict or max_attempts too low."
+            )
 
         acceptance_rate = len(offspring) / attempts if attempts else 0.0
         print(f"Accepted offspring: {len(offspring)}/{attempts} (rate={acceptance_rate:.2f})")
 
-        # default (backwards-compatible)
+        # Replacement (default μ + λ)
         replacer = self.replacer or mu_plus_lambda
         new_pop = replacer(parents, offspring, self.fitness_fn, self.cfg.mu)
 
+        # Evaluate new population
         new_population = Population(new_pop)
         new_population.evaluate(self.fitness_fn)
 
+        # Update novelty archive
         best = min(new_population.molecules, key=lambda m: new_population.fitness[m])
         archive.add(best)
 
         return new_population
 
+    # Multi-generation driver
     def evolve(self, population, generations):
+        """Run evolution for a number of generations and return history list."""
         self.initialize(population)
-        history = [population]  # <- generation 0
+        history = [population]  # generation 0
+
         for gen in range(generations):
             print("Generation ", gen)
             population = self.evolve_one_generation(population)
             history.append(population)
+
         return history
