@@ -8,13 +8,20 @@ A lightweigth framework for simulated molecular evolution using:
 - Optional novelty-augmented fitness
 - Interactive 2D molecular-soup visualization (pygame)
 
+The project follows an MVC architecture:
+- Model: molecules, fitness, constrains, operators, novelty archive
+- Controller: Genetic Algorithm Implementation
+- View: plotting utilities and pygame real-time visualization
+
+Included are also Jupyter Notebooks for testing and output analysis. 
+
 ## Features
-- SELFIES mutation and crossover operators
-- Band-penalized fitness (energy, TPSA, logP, hetero penalties)
-- Novelty scoring using Tanimoto distance
+- SELFIES mutation (insert/delete/replace) and crossover operators
+- Band-penalized fitness combining MMFF energy, TPSA, logP, hetero penalties
+- Novelty scoring using Tanimoto distance over Morgan fingerprints
 - Constraint filtering for chemical plausibility
-- MVC architecture (Model: molecules & fitness, Controller: GA, View: visualization)
-- Pygame real-time visualization with molecule selection & highlighting
+- Interactive visualization with molecule selection, zoom view, best-fitness and best-novelty highlighting, 
+pause/step/speed control
 
 ## Installation
 
@@ -26,10 +33,13 @@ Requires **Python 3.10**
 `python -m src.controller.experiment_runner --gens 50`
 
 Example with custom parameters:
-`python -m src.controller.experiment_runner
---gens 100
---mu 40 --lam 40
--- mutation 0.4 --crossover 0.8`
+
+`python -m src.controller.experiment_runner 
+--gens 100 
+--mu 40 --lam 40 
+--mutation 0.4 --crossover 0.8`
+
+The runner always uses the novelty-augmented penalized fitness.
 
 ## Running the Interactive Molecular Soup
 `python -m src.view.run_soup`
@@ -38,22 +48,39 @@ Controls:
 - SPACE - pause/resume
 - UP/DOWN - speed control
 - LEFT/RIGHT - step through generations
-- Click molecule - inspect and show detailed view
+- Mouse click - select molecule and display details
+
+The viewer highlights:
+- Best-fitness molecule (yellow)
+- Most-novel molecule (green)
 
 ## Project Structure
-`
-src/ 
-    model/ # Molecule, fitness, constraints, operators, novelty 
-    controller/ # GA pipeline, novelty search, experiment runner 
-    view/ # Visualization (pygame), plotting utilities
-`
+
+```graphql
+notebooks/                      # Jupyter Notebooks folder
+src/
+    controller/
+        experiment_runner.py    # CLI runner for GA experiments
+        ga.py                   # Genetic Algorithm (μ + λ)
+    model/
+        constraints.py          # chemical plausibility filters
+        fitness.py              # penalized fitness + novelty-augmented scoring
+        molecule.py             # SELFIES molecules, RDKit conversion, descriptors
+        novelty.py              # global novelty archive
+        operators.py            # SELFIES mutation and crossover
+        population.py           # population container + tournament selection
+        stats.py                # statistical tests
+    view/
+        plots.py                # fitness-over-time and multi-run plots
+        run_soup.py             # launches soup viewer
+        soup.py                 # interactive 2D visualization
+        viewer.py               # static molecule grid visualization
+```
 
 ## Authors
 
-Anastasia Bertova
+- Anastasia Bertova
+- Matilde Pereira
+- Guillermo Torrealba
 
-Matilde Pereira
-
-Guillermo Torrealba
-
-Bio-Inspired Artificial Intelligence 2025, UniTN
+Bio-Inspired Artificial Intelligence, University of Trento 2025/2026

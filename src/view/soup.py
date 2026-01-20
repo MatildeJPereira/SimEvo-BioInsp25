@@ -1,10 +1,29 @@
-import io
+# Interactive 2D visualization of an evolving molecular population.
+# This module:
+# - Renders molecules as drifting sprites using RDKit -> PNG -> pygame surfaces.
+# - Highlights best-fitness and most-novel molecules.
+# - Supports user interaction: click-to-inspect, pause, speed control, generation stepping, and high-resolution zoom
+# of selected molecule.
+# - Acts as the View layer in the MVC architecture.
 
+import io
 import pygame
 import random
-from rdkit.Chem.Draw import MolToImage, rdMolDraw2D
+from rdkit.Chem.Draw import rdMolDraw2D
 
+# Utility: fading highlight circle
+def draw_fading_circle(radius, color):
+    """Return a circular glow surface of given radius and RGB color."""
+    surf = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
+    for r in range(radius, 0, -1):
+        alpha = int(255 * (r / radius))  # stronger in center
+        pygame.draw.circle(surf, (*color, alpha), (radius, radius), r)
+    return surf
+
+# Sprite class
 class MolecularSprite:
+    """A drifting molecule sprite with cached RDKit-rendered surface."""
+
     def __init__(self, molecule, x, y):
         self.molecule = molecule
         self.x = x
@@ -14,6 +33,7 @@ class MolecularSprite:
         self.surface = self.mol_to_surface(molecule)
 
     def mol_to_surface(self, mol, size=(300, 300)):
+        """Render RDKit molecule as a transparent pygame surface."""
         d2d = rdMolDraw2D.MolDraw2DCairo(size[0], size[1])
         d2d.drawOptions().clearBackground = False
         d2d.DrawMolecule(mol.rdkit_mol)
@@ -26,6 +46,7 @@ class MolecularSprite:
         return surface
 
     def update(self, width, height):
+        """Move the sprite; bounce at boundaries."""
         self.x += self.vx
         self.y += self.vy
 
@@ -35,6 +56,7 @@ class MolecularSprite:
             self.vy *= -1
 
     def draw(self, screen, highlight=False, highlight_novelty=False):
+        """Draw sprite with optional fitness/novelty halos."""
         if highlight:
             radius = int(self.surface.get_width() / 2)
             fade_circle = draw_fading_circle(radius, (255, 215, 100))
@@ -47,37 +69,43 @@ class MolecularSprite:
 
         screen.blit(self.surface, (self.x, self.y))
 
-def draw_fading_circle(radius, color):
-    surf = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
-    for r in range(radius, 0, -1):
-        alpha = int(255 * (r / radius))  # stronger in center
-        pygame.draw.circle(surf, (*color, alpha), (radius, radius), r)
-    return surf
 
+# Main pygame visualization class
 class MolecularSoupPygame:
+    """Interactive visualization window showing evolving molecular population."""
+
     def __init__(self, population, width=1000, height=800):
         pygame.init()
+
         self.sidebar_width = 280
         self.screen = pygame.display.set_mode((width + self.sidebar_width, height))
         pygame.display.set_caption('Molecular Soup')
+
         self.width = width
         self.height = height
         self.population = population
         self.sprites = self.create_sprites(population)
 
+        # Interaction state
         self.paused = False
         self.speed = 60
         self.history = [population]
         self.current_index = 0
         self.font = pygame.font.SysFont('Arial', 20)
 
+        # Click-selection state
         self.selected_molecule = None
         self.selected_zoom_surface = None
 
+    # Click handling
     def handle_click(self, pos):
+        """Handle mouse click: select molecule if clicked inside sprite bounds."""
         mx, my = pos
+
+        # ignore clicks inside sidebar
         if mx > self.width:
             return
+
         self.selected_molecule = None
         self.selected_zoom_surface = None
 
@@ -86,31 +114,38 @@ class MolecularSoupPygame:
             sw, sh = sprite.surface.get_width(), sprite.surface.get_height()
 
             if sx <= mx <= sx + sw and sy <= my <= sy + sh:
-                mol = sprite.molecule
-                self.selected_molecule = mol
+                self.selected_molecule = sprite.molecule
+
+                # Generate zoomed RDKit rendering
                 d2d = rdMolDraw2D.MolDraw2DCairo(250, 250)
                 d2d.drawOptions().clearBackground = True
                 d2d.DrawMolecule(sprite.molecule.rdkit_mol)
                 d2d.FinishDrawing()
                 png = d2d.GetDrawingText()
-                bio = io.BytesIO(png)
-                self.selected_zoom_surface = pygame.image.load(bio, "selected.png").convert_alpha()
+                self.selected_zoom_surface = pygame.image.load(
+                    io.BytesIO(png),
+                    "selected.png"
+                ).convert_alpha()
                 break
 
+    # Sidebar rendering
     def draw_sidebar(self):
+        """Draw right-side panel with generation info, selected molecule info, controls."""
         x0 = self.width
         pygame.draw.rect(self.screen, (40, 40, 60), (x0, 0, self.sidebar_width, self.height))
-
         y = 20
+
         def write(text, color=(230, 230, 255)):
             nonlocal y
             surf = self.font.render(text, True, color)
             self.screen.blit(surf, (x0 + 15, y))
             y += 28
 
+        # Basic info
         write(f"Generation: {self.current_index}")
         write(f"Population Size: {len(self.population.molecules)}")
 
+        # Selected molecule info
         if self.selected_molecule is not None:
             mol = self.selected_molecule
             write("--- Selected ---")
@@ -119,12 +154,12 @@ class MolecularSoupPygame:
             if fit is not None:
                 write(f"Fitness: {fit:.3f}", (255, 215, 100))
             from src.model.fitness import archive
-            nov = archive.novelty_score(mol)
-            write(f"Novelty: {nov:.3f}", (132, 205, 161))
+            write(f"Novelty: {archive.novelty_score(mol):.3f}", (132, 205, 161))
 
             if self.selected_zoom_surface:
                 self.screen.blit(self.selected_zoom_surface, (x0 + 15, y+ 10))
 
+        # Best molecule info (kept **exactly** as original per your request)
         else:
             if hasattr(self.population, 'fitness') and self.population.fitness:
                 best = min(self.population.fitness, key=lambda m: self.population.fitness[m])
@@ -132,11 +167,11 @@ class MolecularSoupPygame:
                 write(f"Best Fitness: {bf:.3f}", (255, 215, 100))
                 try:
                     from src.model.fitness import archive
-                    nov = archive.novelty_score(best)
-                    write(f"Novelty: {nov:.3f}", (132, 205, 161))
+                    write(f"Novelty: {archive.novelty_score(best):.3f}", (132, 205, 161))
                 except Exception:
                     write(f"Novelty: -",(132, 205, 161))
 
+        # Bottom controls
         controls_y = self.height - 150
 
         def write_bottom(text):
@@ -151,7 +186,9 @@ class MolecularSoupPygame:
         write_bottom("RIGHT = Next Generation")
         write_bottom("LEFT = Previous Generation")
 
+    # Sprite creation
     def create_sprites(self, population):
+        """Generate new sprite list from population."""
         sprites = []
         for mol in population.molecules:
             x = random.randint(0, self.width -120)
@@ -160,10 +197,13 @@ class MolecularSoupPygame:
         return sprites
 
     def update_population(self, population):
+        """Replace current population and rebuilt sprites."""
         self.population = population
         self.sprites = self.create_sprites(population)
 
+    # Key handling
     def handle_key(self, event, update_callback):
+        """Respond to user keyboard events."""
         if event.key == pygame.K_SPACE:
             self.paused = not self.paused
 
@@ -174,10 +214,10 @@ class MolecularSoupPygame:
             self.speed = max(10, self.speed - 10)
 
         elif event.key == pygame.K_RIGHT:
+            # Step forward
             if self.current_index < len(self.history) - 1:
                 self.current_index += 1
-                nex = self.history[self.current_index]
-                self.update_population(nex)
+                self.update_population(self.history[self.current_index])
             else:
                 if update_callback:
                     new = update_callback(self.population)
@@ -186,12 +226,14 @@ class MolecularSoupPygame:
                     self.update_population(new)
 
         elif event.key == pygame.K_LEFT:
+            # Step backward
             if self.current_index > 0:
                 self.current_index -= 1
-                prev = self.history[self.current_index]
-                self.update_population(prev)
+                self.update_population(self.history[self.current_index])
 
+    # Main loop
     def run(self, update_callback=None):
+        """Main pygame loop with drawing, input handling, and GA updates."""
         running = True
         clock = pygame.time.Clock()
         frame = 0
@@ -199,6 +241,7 @@ class MolecularSoupPygame:
         while running:
             clock.tick(self.speed)
 
+            # Handle events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -207,6 +250,7 @@ class MolecularSoupPygame:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.handle_click(event.pos)
 
+            # Update sprites if running
             if not self.paused:
                 for sprite in self.sprites:
                     sprite.update(self.width, self.height)
@@ -214,24 +258,29 @@ class MolecularSoupPygame:
             self.screen.fill((110, 100, 180))
             self.draw_sidebar()
 
+            # Fitness and novelty highlights
             best_mol_fitness = None
             best_mol_novelty = None
+
             if hasattr(self.population, 'fitness') and self.population.fitness:
-                best_mol_fitness = min(self.population.fitness, key=lambda m: self.population.fitness[m])
+                best_mol_fitness = min(self.population.fitness,
+                                       key=lambda m: self.population.fitness[m])
 
             from src.model.fitness import archive
-            best_mol_novelty = max(self.population.molecules, key=lambda m: archive.novelty_score(m))
+            best_mol_novelty = max(self.population.molecules,
+                                   key=lambda m: archive.novelty_score(m))
 
+            # Draw sprites
             for sprite in self.sprites:
-                if sprite.molecule == best_mol_fitness:
-                    sprite.draw(self.screen, highlight=True)
-                if sprite.molecule == best_mol_novelty:
-                    sprite.draw(self.screen, highlight_novelty=True)
-                else:
-                    sprite.draw(self.screen)
+                sprite.draw(
+                    self.screen,
+                    highlight=(sprite.molecule == best_mol_fitness),
+                    highlight_novelty=(sprite.molecule == best_mol_novelty)
+                )
 
             pygame.display.flip()
 
+            # Auto-evolve every 300 frames
             if not self.paused:
                 frame += 1
                 if update_callback and frame % 300 == 0:
