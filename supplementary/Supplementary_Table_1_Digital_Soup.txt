@@ -1,0 +1,41 @@
+Molecule name                      SMILES
+Hydrogen cyanide                   C#N
+Formaldehyde                       C=O
+Methanol                           CO
+Ethanol                            CCO
+Acetaldehyde                       CC=O
+Glycolaldehyde                     O=CCO
+Formic acid                        O=C(O)
+Urea                               NC(=O)N
+Ammonia                            N
+Water                              O
+Glycine                            NCC(=O)O
+Alanine                            CC(C(=O)O)N
+Acetic acid                        CC(=O)O
+Ethylamine                         CCN
+Methanethiol                       CS
+Pyruvic acid                       CC(=O)C(=O)O
+Acetone                            CC(=O)C
+Carbon dioxide                     O=C=O
+Carbonyl sulfide                   O=C=S
+Phosphoric acid / orthophosphate   OP(=O)(O)O
+Benzene                            c1ccccc1
+Imidazole                          c1cnc[nH]1
+Pyrrole                            c1cc[nH]c1
+Cyclopentane                       C1CCCC1
+Cyclohexane                        C1CCCCC1
+Aminopyrimidine                    NC1=NC=CN1
+Furan                              c1ccoc1
+Lactic acid                        OCC(=O)O
+Purine                             c1ncnc2[nH]cnc12
+Pyrophosphate                      OP(=O)(O)OP(=O)(O)O
+beta-Hydroxybutyric acid           CC(O)C(=O)O
+Glyceraldehyde                     O=CC(O)CO
+Dihydroxyacetone                   O=C(CO)CO
+Formamide                          NC=O
+Ethene                             C=C
+Propionic acid                     CCC(=O)O
+Succinic acid                      O=C(O)CCC(=O)O
+Cysteamine                         NCCS
+Thiourea                           NC(=S)N
+Ribose                             OC[C@H]1OC(O)[C@H](O)[C@@H]1O
